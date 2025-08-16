@@ -1,25 +1,81 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { variants } from './hooks/useAdvancedAnimations';
+import './styles/theme.css';
+import Navbar from './components/Navbar';
+import Hero from './components/Hero';
+import Properties from './components/Properties';
+import Footer from './components/Footer';
+import Contact from './components/Contact';
+
+// Simple intersection observer for reveal animations
+const useReveal = () => {
+    useEffect(() => {
+        document.documentElement.classList.add('reveal-ready');
+        const els = [...document.querySelectorAll('.reveal-up, .fade-in')];
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    e.target.classList.add('visible');
+                    observer.unobserve(e.target);
+                }
+            });
+        }, { threshold: 0.2 });
+        els.forEach(el => observer.observe(el));
+        return () => observer.disconnect();
+    }, []);
+};
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    useReveal();
+    return (
+        <>
+            <Navbar />
+            <motion.main
+                initial="initial"
+                animate="animate"
+                variants={variants.pageLoad}
+                style={{ position: 'relative' }}
+            >
+                <Hero />
+                <Properties />
+                {/* About Section with professional motion */}
+                <section id="about" className="section-pad">
+                    <div className="container">
+                        <motion.div variants={variants.sectionReveal} initial="initial" whileInView="animate" viewport={{ once: true }}>
+                            <h2 className="section-heading">Advisory Ethos</h2>
+                            <p className="subheading" style={{ marginBottom: '2.2rem' }}>
+                                Our philosophy centers on long-term asset performance, safeguarding capital while enhancing lifestyle utility. We navigate complexity with discretion, insight and a calibrated negotiation posture.
+                            </p>
+                        </motion.div>
+                        <motion.div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: '2.2rem' }} variants={variants.cascadeParent} initial="initial" whileInView="animate" viewport={{ once: true }}>
+                            {[
+                                {
+                                    title: 'Strategic Acquisition',
+                                    copy: 'We vet architectural integrity, micro‑market indicators and liquidity vectors to underwrite resilient acquisitions.'
+                                },
+                                {
+                                    title: 'Portfolio Curation',
+                                    copy: 'Balancing primary residences, pied-à-terre holdings and yield assets for optimized exposure across cycles.'
+                                },
+                                {
+                                    title: 'Confidential Disposition',
+                                    copy: 'When divesting, we orchestrate controlled visibility campaigns preserving privacy and price integrity.'
+                                }
+                            ].map(block => (
+                                <motion.div key={block.title} className="glass value" variants={variants.cascadeItem}>
+                                    <h3>{block.title}</h3>
+                                    <p>{block.copy}</p>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    </div>
+                </section>
+                <Contact />
+            </motion.main>
+            <Footer />
+        </>
+    );
 }
 
 export default App;

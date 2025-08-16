@@ -1,0 +1,327 @@
+import { useEffect, useRef, useState } from 'react';
+import { useAnimation, useInView } from 'framer-motion';
+
+// Advanced easing curves for luxury feel
+export const easings = {
+    luxury: [0.25, 0.1, 0.25, 1.0],
+    elegant: [0.4, 0.0, 0.2, 1.0],
+    sophisticated: [0.2, 0.8, 0.2, 1.0],
+    refined: [0.16, 1, 0.3, 1],
+    premium: [0.645, 0.045, 0.355, 1],
+    silk: [0.33, 0.11, 0.15, 1],
+};
+
+// Animation variants for consistent orchestration
+export const variants = {
+    // Page load sequence
+    pageLoad: {
+        initial: { opacity: 0 },
+        animate: {
+            opacity: 1,
+            transition: {
+                duration: 0.8,
+                ease: easings.elegant,
+                staggerChildren: 0.1
+            }
+        }
+    },
+
+    // Sophisticated reveal with scale
+    revealLuxury: {
+        initial: {
+            opacity: 0,
+            y: 48,
+            scale: 0.97,
+            filter: 'blur(4px)'
+        },
+        animate: {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            filter: 'blur(0px)',
+            transition: {
+                duration: 1.05,
+                ease: easings.silk,
+            }
+        }
+    },
+
+    // Card hover with magnetic effect
+    cardMagnetic: {
+        initial: { scale: 1, y: 0 },
+        hover: {
+            scale: 1.02,
+            y: -8,
+            transition: {
+                type: "spring",
+                stiffness: 400,
+                damping: 25
+            }
+        },
+        tap: {
+            scale: 0.98,
+            transition: { duration: 0.1 }
+        }
+    },
+
+    // Staggered children animation
+    staggerContainer: {
+        initial: {},
+        animate: {
+            transition: {
+                staggerChildren: 0.11,
+                delayChildren: 0.18
+            }
+        }
+    },
+
+    staggerChild: {
+        initial: { opacity: 0, y: 36, scale: 0.94, filter: 'blur(6px)' },
+        animate: {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            filter: 'blur(0px)',
+            transition: {
+                duration: 0.75,
+                ease: easings.silk
+            }
+        }
+    },
+
+    // Morphing button
+    buttonMorph: {
+        initial: { scale: 1, borderRadius: 50 },
+        hover: {
+            scale: 1.035,
+            borderRadius: 58,
+            boxShadow: "0 14px 34px -10px rgba(212, 175, 55, 0.35)",
+            transition: {
+                type: 'spring',
+                stiffness: 220,
+                damping: 26,
+                mass: 0.9
+            }
+        },
+        tap: {
+            scale: 0.96,
+            transition: { duration: 0.08 }
+        }
+    },
+
+    // Text reveal with mask
+    textReveal: {
+        initial: {
+            clipPath: "inset(0 100% 0 0)",
+            opacity: 0
+        },
+        animate: {
+            clipPath: "inset(0 0% 0 0)",
+            opacity: 1,
+            transition: {
+                duration: 1.4,
+                ease: easings.sophisticated
+            }
+        }
+    },
+
+    // Parallax floating
+    float: {
+        animate: {
+            y: [0, -10, 0],
+            transition: {
+                duration: 6,
+                repeat: Infinity,
+                ease: "easeInOut"
+            }
+        }
+    },
+
+    // Card entrance variant (snappy yet smooth)
+    cardIn: {
+        initial: { opacity: 0, y: 50, scale: 0.95 },
+        animate: {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] }
+        }
+    },
+
+    // Unified property card (entrance + hover refinement)
+    propertyCard: {
+        initial: { opacity: 0, y: 44, scale: 0.94, filter: 'blur(6px)' },
+        animate: {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            filter: 'blur(0px)',
+            transition: { duration: 0.85, ease: easings.silk }
+        },
+        hover: {
+            scale: 1.012,
+            y: -4,
+            transition: {
+                type: 'spring',
+                stiffness: 210,
+                damping: 28,
+                mass: 0.9
+            }
+        },
+        tap: {
+            scale: 0.988,
+            y: -1,
+            transition: { duration: 0.1 }
+        }
+    },
+
+    // Card media subtle cinematic scale
+    propertyCardMedia: {
+        initial: { scale: 1, filter: 'saturate(104%) contrast(104%)' },
+        hover: {
+            scale: 1.035,
+            filter: 'saturate(112%) contrast(110%)',
+            transition: { duration: 1.2, ease: easings.luxury }
+        }
+    },
+
+    // New subtle professional variants
+    fadeInUp: {
+        initial: { opacity: 0, y: 28, filter: 'blur(4px)' },
+        animate: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.7, ease: easings.silk } }
+    },
+    fadeInBlur: {
+        initial: { opacity: 0, y: 24, filter: 'blur(10px)' },
+        animate: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.85, ease: easings.silk } }
+    },
+    sectionReveal: {
+        initial: { opacity: 0, y: 56, scale: 0.985, filter: 'blur(6px)' },
+        animate: { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)', transition: { duration: 1.0, ease: easings.silk } }
+    },
+    cascadeParent: {
+        initial: {},
+        animate: { transition: { staggerChildren: 0.08, delayChildren: 0.25 } }
+    },
+    cascadeItem: {
+        initial: { opacity: 0, y: 20, filter: 'blur(6px)' },
+        animate: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.6, ease: easings.silk } }
+    }
+};
+
+// Advanced scroll-triggered animations hook
+export const useScrollAnimation = (threshold = 0.3, once = true) => {
+    const ref = useRef(null);
+    const isInView = useInView(ref, {
+        threshold,
+        once,
+        margin: "-100px 0px -100px 0px"
+    });
+    const controls = useAnimation();
+
+    useEffect(() => {
+        if (isInView) {
+            controls.start("animate");
+        } else if (!once) {
+            controls.start("initial");
+        }
+    }, [isInView, controls, once]);
+
+    return { ref, controls, isInView };
+};
+
+// Magnetic cursor effect for cards
+export const useMagneticEffect = () => {
+    const ref = useRef(null);
+
+    useEffect(() => {
+        const element = ref.current;
+        if (!element) return;
+
+        const handleMouseMove = (e) => {
+            const rect = element.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            const deltaX = (e.clientX - centerX) * 0.15;
+            const deltaY = (e.clientY - centerY) * 0.15;
+
+            element.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1.02)`;
+        };
+
+        const handleMouseLeave = () => {
+            element.style.transform = 'translate(0px, 0px) scale(1)';
+        };
+
+        element.addEventListener('mousemove', handleMouseMove);
+        element.addEventListener('mouseleave', handleMouseLeave);
+
+        return () => {
+            element.removeEventListener('mousemove', handleMouseMove);
+            element.removeEventListener('mouseleave', handleMouseLeave);
+        };
+    }, []);
+
+    return ref;
+};
+
+// Advanced loading sequence
+export const useLoadingSequence = (duration = 2000) => {
+    const [isLoading, setIsLoading] = useState(true);
+    const [progress, setProgress] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setProgress(prev => {
+                if (prev >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => setIsLoading(false), 300);
+                    return 100;
+                }
+                return prev + Math.random() * 15;
+            });
+        }, 100);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    return { isLoading, progress };
+};
+
+// Smooth scroll with easing
+export const smoothScrollTo = (target, duration = 1500) => {
+    const targetElement = document.querySelector(target);
+    if (!targetElement) return;
+
+    const targetPosition = targetElement.offsetTop - 80;
+    const startPosition = window.pageYOffset;
+    const distance = targetPosition - startPosition;
+    let startTime = null;
+
+    const animation = (currentTime) => {
+        if (startTime === null) startTime = currentTime;
+        const timeElapsed = currentTime - startTime;
+        const run = easeInOutCubic(timeElapsed, startPosition, distance, duration);
+        window.scrollTo(0, run);
+        if (timeElapsed < duration) requestAnimationFrame(animation);
+    };
+
+    const easeInOutCubic = (t, b, c, d) => {
+        t /= d / 2;
+        if (t < 1) return c / 2 * t * t * t + b;
+        t -= 2;
+        return c / 2 * (t * t * t + 2) + b;
+    };
+
+    requestAnimationFrame(animation);
+};
+
+const animationUtils = {
+    variants,
+    easings,
+    useScrollAnimation,
+    useMagneticEffect,
+    useLoadingSequence,
+    smoothScrollTo
+};
+
+export default animationUtils;
