@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/rafique-merchant/static/css/main.e1167dc7.css",
-    "main.js": "/rafique-merchant/static/js/main.c963c8ce.js",
+    "main.css": "/rafique-merchant/static/css/main.885a6d16.css",
+    "main.js": "/rafique-merchant/static/js/main.024da7e1.js",
     "properties-chunk.js": "/rafique-merchant/static/js/properties-chunk.0e087901.chunk.js",
     "spline-hero.js": "/rafique-merchant/static/js/spline-hero.07d9d91c.chunk.js",
     "static/js/453.f1112009.chunk.js": "/rafique-merchant/static/js/453.f1112009.chunk.js",
@@ -15,8 +15,8 @@
     "static/js/23.3de67c98.chunk.js": "/rafique-merchant/static/js/23.3de67c98.chunk.js",
     "static/media/rafique-merchant.png": "/rafique-merchant/static/media/rafique-merchant.fabedcb243832b1e60f0.png",
     "index.html": "/rafique-merchant/index.html",
-    "main.e1167dc7.css.map": "/rafique-merchant/static/css/main.e1167dc7.css.map",
-    "main.c963c8ce.js.map": "/rafique-merchant/static/js/main.c963c8ce.js.map",
+    "main.885a6d16.css.map": "/rafique-merchant/static/css/main.885a6d16.css.map",
+    "main.024da7e1.js.map": "/rafique-merchant/static/js/main.024da7e1.js.map",
     "properties-chunk.0e087901.chunk.js.map": "/rafique-merchant/static/js/properties-chunk.0e087901.chunk.js.map",
     "spline-hero.07d9d91c.chunk.js.map": "/rafique-merchant/static/js/spline-hero.07d9d91c.chunk.js.map",
     "453.f1112009.chunk.js.map": "/rafique-merchant/static/js/453.f1112009.chunk.js.map",
@@ -30,7 +30,7 @@
     "23.3de67c98.chunk.js.map": "/rafique-merchant/static/js/23.3de67c98.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.e1167dc7.css",
-    "static/js/main.c963c8ce.js"
+    "static/css/main.885a6d16.css",
+    "static/js/main.024da7e1.js"
   ]
 }
