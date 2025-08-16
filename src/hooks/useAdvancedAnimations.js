@@ -293,28 +293,24 @@ export const useLoadingSequence = (duration = 2000) => {
 export const smoothScrollTo = (target, duration = 1500) => {
     const targetElement = document.querySelector(target);
     if (!targetElement) return;
-
-    const targetPosition = targetElement.offsetTop - 80;
-    const startPosition = window.pageYOffset;
-    const distance = targetPosition - startPosition;
+    const startY = window.pageYOffset;
+    const targetRectTop = targetElement.getBoundingClientRect().top; // single layout read
+    const destinationY = startY + targetRectTop - 70; // account for navbar height
+    const distance = destinationY - startY;
+    if (Math.abs(distance) < 4) return; // trivial distance
     let startTime = null;
-
-    const animation = (currentTime) => {
-        if (startTime === null) startTime = currentTime;
-        const timeElapsed = currentTime - startTime;
-        const run = easeInOutCubic(timeElapsed, startPosition, distance, duration);
-        window.scrollTo(0, run);
-        if (timeElapsed < duration) requestAnimationFrame(animation);
+    let rafId;
+    const easeInOutCubic = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const step = (ts) => {
+        if (!startTime) startTime = ts;
+        const elapsed = ts - startTime;
+        const p = Math.min(1, elapsed / duration);
+        const eased = easeInOutCubic(p);
+        window.scrollTo(0, startY + distance * eased);
+        if (p < 1) rafId = requestAnimationFrame(step);
     };
-
-    const easeInOutCubic = (t, b, c, d) => {
-        t /= d / 2;
-        if (t < 1) return c / 2 * t * t * t + b;
-        t -= 2;
-        return c / 2 * (t * t * t + 2) + b;
-    };
-
-    requestAnimationFrame(animation);
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
 };
 
 const animationUtils = {

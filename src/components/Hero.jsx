@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, Suspense, lazy } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import portraitImg from '../assets/rafique-merchant.png';
-import { variants } from '../hooks/useAdvancedAnimations';
+import { variants, smoothScrollTo } from '../hooks/useAdvancedAnimations';
 // Lazy load heavy Spline runtime only when needed (reduces initial JS on low-end devices)
 const LazySpline = lazy(() => import(/* webpackChunkName: 'spline-hero' */ '@splinetool/react-spline'));
 
@@ -80,18 +80,12 @@ const Hero = () => {
                         <motion.button
                             variants={variants.buttonMorph}
                             className="cta"
-                            onClick={() => {
-                                const el = document.getElementById('portfolio');
-                                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }}
+                            onClick={() => smoothScrollTo('#portfolio', 850)}
                         >Browse Properties</motion.button>
                         <motion.button
                             variants={variants.buttonMorph}
                             className="cta btn-outline"
-                            onClick={() => {
-                                const el = document.getElementById('contact');
-                                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }}
+                            onClick={() => smoothScrollTo('#contact', 900)}
                         >Arrange a Consultation</motion.button>
                     </motion.div>
                     <motion.div className="values" variants={variants.staggerContainer}>
