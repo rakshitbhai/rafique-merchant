@@ -1,6 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAnimation, useInView } from 'framer-motion';
 
+// Lightweight runtime performance heuristic (runs once on module load)
+// Falls back gracefully if unavailable environment APIs
+const perfHeuristic = (() => {
+    if (typeof window === 'undefined') return false;
+    try {
+        const lowHW = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
+        const lowMem = (navigator.deviceMemory && navigator.deviceMemory <= 4);
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const conn = navigator.connection || navigator.webkitConnection || navigator.mozConnection;
+        const slowNet = conn && ['slow-2g', '2g'].includes(conn.effectiveType);
+        return lowHW || lowMem || reduced || slowNet;
+    } catch (e) { return false; }
+})();
+
 // Advanced easing curves for luxury feel
 export const easings = {
     luxury: [0.25, 0.1, 0.25, 1.0],
@@ -12,6 +26,8 @@ export const easings = {
 };
 
 // Animation variants for consistent orchestration
+// NOTE: We intentionally avoid animating expensive CSS properties (filter / large box-shadows)
+// when in performance mode. This reduces paint & composite cost on low-end devices + mobile.
 export const variants = {
     // Page load sequence
     pageLoad: {
@@ -19,9 +35,9 @@ export const variants = {
         animate: {
             opacity: 1,
             transition: {
-                duration: 0.8,
+                duration: perfHeuristic ? 0.45 : 0.7,
                 ease: easings.elegant,
-                staggerChildren: 0.1
+                staggerChildren: perfHeuristic ? 0.05 : 0.09
             }
         }
     },
@@ -30,18 +46,19 @@ export const variants = {
     revealLuxury: {
         initial: {
             opacity: 0,
-            y: 48,
-            scale: 0.97,
-            filter: 'blur(4px)'
+            y: perfHeuristic ? 28 : 44,
+            scale: perfHeuristic ? 1 : 0.97,
+            // omit filter in performance mode
+            ...(perfHeuristic ? {} : { filter: 'blur(4px)' })
         },
         animate: {
             opacity: 1,
             y: 0,
             scale: 1,
-            filter: 'blur(0px)',
+            ...(perfHeuristic ? {} : { filter: 'blur(0px)' }),
             transition: {
-                duration: 1.05,
-                ease: easings.silk,
+                duration: perfHeuristic ? 0.55 : 0.95,
+                ease: perfHeuristic ? easings.elegant : easings.silk,
             }
         }
     },
@@ -49,19 +66,12 @@ export const variants = {
     // Card hover with magnetic effect
     cardMagnetic: {
         initial: { scale: 1, y: 0 },
-        hover: {
+        hover: perfHeuristic ? { scale: 1.015, y: -4 } : {
             scale: 1.02,
             y: -8,
-            transition: {
-                type: "spring",
-                stiffness: 400,
-                damping: 25
-            }
+            transition: { type: 'spring', stiffness: 400, damping: 25 }
         },
-        tap: {
-            scale: 0.98,
-            transition: { duration: 0.1 }
-        }
+        tap: { scale: 0.985, transition: { duration: 0.1 } }
     },
 
     // Staggered children animation
@@ -76,16 +86,13 @@ export const variants = {
     },
 
     staggerChild: {
-        initial: { opacity: 0, y: 36, scale: 0.94, filter: 'blur(6px)' },
+        initial: { opacity: 0, y: perfHeuristic ? 18 : 32, scale: 0.96, ...(perfHeuristic ? {} : { filter: 'blur(6px)' }) },
         animate: {
             opacity: 1,
             y: 0,
             scale: 1,
-            filter: 'blur(0px)',
-            transition: {
-                duration: 0.75,
-                ease: easings.silk
-            }
+            ...(perfHeuristic ? {} : { filter: 'blur(0px)' }),
+            transition: { duration: perfHeuristic ? 0.45 : 0.7, ease: perfHeuristic ? easings.elegant : easings.silk }
         }
     },
 
@@ -110,19 +117,12 @@ export const variants = {
     },
 
     // Text reveal with mask
-    textReveal: {
-        initial: {
-            clipPath: "inset(0 100% 0 0)",
-            opacity: 0
-        },
-        animate: {
-            clipPath: "inset(0 0% 0 0)",
-            opacity: 1,
-            transition: {
-                duration: 1.4,
-                ease: easings.sophisticated
-            }
-        }
+    textReveal: perfHeuristic ? {
+        initial: { opacity: 0, y: 12 },
+        animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: easings.elegant } }
+    } : {
+        initial: { clipPath: 'inset(0 100% 0 0)', opacity: 0 },
+        animate: { clipPath: 'inset(0 0% 0 0)', opacity: 1, transition: { duration: 1.2, ease: easings.sophisticated } }
     },
 
     // Parallax floating
@@ -150,51 +150,50 @@ export const variants = {
 
     // Unified property card (entrance + hover refinement)
     propertyCard: {
-        initial: { opacity: 0, y: 44, scale: 0.94, filter: 'blur(6px)' },
+        initial: { opacity: 0, y: perfHeuristic ? 28 : 42, scale: perfHeuristic ? 1 : 0.95, ...(perfHeuristic ? {} : { filter: 'blur(6px)' }) },
         animate: {
             opacity: 1,
             y: 0,
             scale: 1,
-            filter: 'blur(0px)',
-            transition: { duration: 0.85, ease: easings.silk }
+            ...(perfHeuristic ? {} : { filter: 'blur(0px)' }),
+            transition: { duration: perfHeuristic ? 0.55 : 0.8, ease: perfHeuristic ? easings.elegant : easings.silk }
         },
-        hover: {
+        hover: perfHeuristic ? { scale: 1.01, y: -3 } : {
             scale: 1.012,
             y: -4,
-            transition: {
-                type: 'spring',
-                stiffness: 210,
-                damping: 28,
-                mass: 0.9
-            }
+            transition: { type: 'spring', stiffness: 210, damping: 28, mass: 0.9 }
         },
-        tap: {
-            scale: 0.988,
-            y: -1,
-            transition: { duration: 0.1 }
-        }
+        tap: { scale: 0.988, y: -1, transition: { duration: 0.1 } }
     },
 
     // Card media subtle cinematic scale
-    propertyCardMedia: {
+    propertyCardMedia: perfHeuristic ? {
+        initial: { scale: 1 },
+        hover: { scale: 1.02, transition: { duration: 0.8, ease: easings.luxury } }
+    } : {
         initial: { scale: 1, filter: 'saturate(104%) contrast(104%)' },
-        hover: {
-            scale: 1.035,
-            filter: 'saturate(112%) contrast(110%)',
-            transition: { duration: 1.2, ease: easings.luxury }
-        }
+        hover: { scale: 1.035, filter: 'saturate(112%) contrast(110%)', transition: { duration: 1.2, ease: easings.luxury } }
     },
 
     // New subtle professional variants
-    fadeInUp: {
+    fadeInUp: perfHeuristic ? {
+        initial: { opacity: 0, y: 18 },
+        animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: easings.elegant } }
+    } : {
         initial: { opacity: 0, y: 28, filter: 'blur(4px)' },
         animate: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.7, ease: easings.silk } }
     },
-    fadeInBlur: {
+    fadeInBlur: perfHeuristic ? {
+        initial: { opacity: 0, y: 20 },
+        animate: { opacity: 1, y: 0, transition: { duration: 0.55, ease: easings.elegant } }
+    } : {
         initial: { opacity: 0, y: 24, filter: 'blur(10px)' },
         animate: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.85, ease: easings.silk } }
     },
-    sectionReveal: {
+    sectionReveal: perfHeuristic ? {
+        initial: { opacity: 0, y: 36 },
+        animate: { opacity: 1, y: 0, transition: { duration: 0.6, ease: easings.elegant } }
+    } : {
         initial: { opacity: 0, y: 56, scale: 0.985, filter: 'blur(6px)' },
         animate: { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)', transition: { duration: 1.0, ease: easings.silk } }
     },
@@ -202,7 +201,10 @@ export const variants = {
         initial: {},
         animate: { transition: { staggerChildren: 0.08, delayChildren: 0.25 } }
     },
-    cascadeItem: {
+    cascadeItem: perfHeuristic ? {
+        initial: { opacity: 0, y: 14 },
+        animate: { opacity: 1, y: 0, transition: { duration: 0.45, ease: easings.elegant } }
+    } : {
         initial: { opacity: 0, y: 20, filter: 'blur(6px)' },
         animate: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.6, ease: easings.silk } }
     }

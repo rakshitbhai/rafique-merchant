@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, Suspense, lazy } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-// Founder portrait (optimized PNG). Consider adding a WebP variant for further performance.
 import portraitImg from '../assets/rafique-merchant.png';
-import Spline from '@splinetool/react-spline';
 import { variants } from '../hooks/useAdvancedAnimations';
+// Lazy load heavy Spline runtime only when needed (reduces initial JS on low-end devices)
+const LazySpline = lazy(() => import(/* webpackChunkName: 'spline-hero' */ '@splinetool/react-spline'));
 
 const Hero = () => {
     const splineRef = useRef(null);
@@ -26,7 +26,7 @@ const Hero = () => {
             setSigIndex(i => (i + 1) % signatureItems.length);
         }, 2600);
         return () => clearInterval(id);
-    }, []);
+    }, [signatureItems.length]);
 
     // Determine allowance (respect prefers-reduced-motion only). Mobile now allowed; we optimize height via CSS.
     useEffect(() => {
@@ -129,12 +129,14 @@ const Hero = () => {
                             <div className="spline-inline-fallback">3D unavailable</div>
                         )}
                         {allowSpline && mountSpline && !splineFailed && (
-                            <Spline
-                                scene="https://prod.spline.design/tGjJ6QDIi3y-GRzV/scene.splinecode"
-                                onLoad={() => setSplineLoaded(true)}
-                                onError={() => setSplineFailed(true)}
-                                style={{ opacity: splineLoaded ? 1 : 0, transition: 'opacity 900ms ease 150ms' }}
-                            />
+                            <Suspense fallback={<div className="spline-inline-loading"><span className="pulse-dot" /><span className="load-text">Loading 3D…</span></div>}>
+                                <LazySpline
+                                    scene="https://prod.spline.design/tGjJ6QDIi3y-GRzV/scene.splinecode"
+                                    onLoad={() => setSplineLoaded(true)}
+                                    onError={() => setSplineFailed(true)}
+                                    style={{ opacity: splineLoaded ? 1 : 0, transition: 'opacity 900ms ease 150ms' }}
+                                />
+                            </Suspense>
                         )}
                         {allowSpline && <div className="spline-gradient-mask" />}
                         {!allowSpline && !splineFailed && (

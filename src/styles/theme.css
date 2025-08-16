@@ -39,6 +39,65 @@
     --font-display: "Playfair Display", "Cormorant Garamond", serif;
 }
 
+/* Performance mode (applied via <html class="perf-mode"> by optional future script) */
+.perf-mode .glass,
+.perf-mode .glass-strong,
+.perf-mode .quick-view-tag,
+.perf-mode .filter-pill,
+.perf-mode .hero-spline,
+.perf-mode .founder-card,
+.perf-mode .value,
+/* exclude swipe-card from generic card background override to keep image vivid */
+.perf-mode .card:not(.swipe-card),
+.perf-mode .mobile-drawer,
+.perf-mode .modal-panel {
+    /* Replace expensive backdrop-filter with flat translucent backdrop-color only (preserve any background-image) */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-color: rgba(32, 32, 36, 0.72) !important;
+}
+
+.perf-mode .hero-accent {
+    display: none !important;
+}
+
+.perf-mode .card-media {
+    filter: none !important;
+}
+
+.perf-mode .signature-word-pill {
+    box-shadow: none;
+}
+
+.perf-mode .founder-card::after {
+    display: none !important;
+}
+
+.perf-mode .swipe-card {
+    background-color: transparent !important;
+    background-blend-mode: normal;
+}
+
+/* Lighten the gradient overlay for perf-mode (make image more visible) */
+.perf-mode .swipe-card::after {
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, .55));
+}
+
+/* Targeted will-change only on interactive elements */
+.card,
+.swipe-card,
+.menu-btn .menu-shape,
+.hero-accent,
+.signature-word-pill {
+    will-change: transform, opacity;
+}
+
+.cta,
+.filter-pill,
+.quick-view-tag {
+    will-change: transform;
+}
+
 html,
 body {
     background: radial-gradient(circle at 30% 20%, #161618, #09090b 65%) fixed;
@@ -359,16 +418,33 @@ button.cta:active {
     box-shadow: 0 25px 50px -18px rgba(0, 0, 0, .7), 0 6px 18px -6px rgba(0, 0, 0, .5);
     will-change: transform;
     touch-action: pan-y;
+    /* Extra clipping to avoid GPU edge bleed on scaled/rotated transforms */
+    clip-path: inset(0 round 34px);
+    -webkit-mask-image: -webkit-radial-gradient(white, white);
+    mask-image: radial-gradient(white, white);
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+    contain: layout paint;
 }
 
+.swipe-card.top {
+    /* enforce crispness on the active draggable card */
+    outline: 1px solid rgba(255, 255, 255, 0.05);
+    outline-offset: 0;
+}
+
+/* Slightly smaller scale on drag to reduce overflow risk */
+.perf-mode .swipe-card.top,
+.swipe-card.top {
+    --drag-scale: 1.032;
+}
+
+/* Remove full-card overlay; we'll apply gradient only behind text to prevent image bleed/dulling */
 .swipe-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, .75));
-    pointer-events: none;
+    content: none;
 }
 
+/* Text container gradient (local only) for readability */
 .swipe-card-overlay {
     position: relative;
     z-index: 2;
@@ -376,6 +452,28 @@ button.cta:active {
     display: flex;
     flex-direction: column;
     gap: 1.1rem;
+    background: none;
+}
+
+.swipe-card-overlay::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(12, 12, 14, 0.55) 55%, rgba(12, 12, 14, 0.8) 100%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Performance mode: slightly lighter gradient for less contrast cost */
+.perf-mode .swipe-card-overlay::before {
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(14, 14, 16, 0.5) 55%, rgba(14, 14, 16, 0.7) 100%);
+}
+
+/* Edge containment to stop visual bleeding during scale transforms */
+.swipe-card {
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+    contain: paint;
 }
 
 .swipe-card-overlay h3 {
@@ -2586,4 +2684,38 @@ form.is-submitting .cta {
 
 .card:focus-within {
     box-shadow: var(--shadow-glow);
+}
+
+/* Performance toggle button */
+.perf-toggle-btn {
+    position: fixed;
+    bottom: 14px;
+    left: 14px;
+    z-index: 140;
+    font-size: .55rem;
+    letter-spacing: .25em;
+    text-transform: uppercase;
+    padding: .55rem .9rem .5rem;
+    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.55);
+    color: var(--color-neutral-300);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: var(--trans-fast);
+}
+
+.perf-toggle-btn:hover {
+    color: var(--color-neutral-100);
+    border-color: rgba(212, 175, 55, .55);
+    box-shadow: 0 0 0 1px rgba(212, 175, 55, .4), 0 6px 20px -10px rgba(212, 175, 55, .4);
+}
+
+.perf-toggle-btn:active {
+    transform: translateY(1px);
+}
+
+.perf-mode .perf-toggle-btn {
+    background: rgba(0, 0, 0, 0.75);
 }

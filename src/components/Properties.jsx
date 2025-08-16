@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import { motion, AnimatePresence, useAnimation, useMotionValue, useTransform, useReducedMotion } from 'framer-motion';
 import { variants } from '../hooks/useAdvancedAnimations';
 
@@ -25,11 +25,19 @@ const Properties = () => {
     const [isNarrow, setIsNarrow] = useState(false);
 
     // Detect narrow viewport to default to swipe mode option
+    // Throttled resize listener to avoid layout thrash
     useEffect(() => {
-        const check = () => setIsNarrow(window.innerWidth < 640);
+        let frame = null;
+        const check = () => {
+            if (frame) return;
+            frame = requestAnimationFrame(() => {
+                setIsNarrow(window.innerWidth < 640);
+                frame = null;
+            });
+        };
         check();
-        window.addEventListener('resize', check);
-        return () => window.removeEventListener('resize', check);
+        window.addEventListener('resize', check, { passive: true });
+        return () => { window.removeEventListener('resize', check); if (frame) cancelAnimationFrame(frame); };
     }, []);
 
     useEffect(() => {
@@ -142,8 +150,8 @@ const StatsRow = ({ show, statsRef, total, count }) => {
     );
 };
 
-const PropertyCard = ({ property, index, feature = false, onQuickView }) => {
-    const { id, image, title, price, location, type, beds, baths, size, blurb } = property;
+const PropertyCard = memo(({ property, index, feature = false, onQuickView }) => {
+    const { id, image, title, price, location, type, beds, baths, size } = property;
     const [hiResLoaded, setHiResLoaded] = useState(false);
 
     // Low-quality placeholder (LQIP) using Unsplash param & high-res swap
@@ -151,9 +159,11 @@ const PropertyCard = ({ property, index, feature = false, onQuickView }) => {
     const hiSrc = image;
 
     useEffect(() => {
+        let canceled = false;
         const img = new Image();
         img.src = hiSrc;
-        img.onload = () => setHiResLoaded(true);
+        img.onload = () => { if (!canceled) setHiResLoaded(true); };
+        return () => { canceled = true; };
     }, [hiSrc]);
 
     // Preload low quality (already near instant from Unsplash) – no state needed.
@@ -193,7 +203,8 @@ const PropertyCard = ({ property, index, feature = false, onQuickView }) => {
             >View</button>
         </motion.article>
     );
-};
+});
+PropertyCard.displayName = 'PropertyCard';
 
 const PropertyModal = ({ property, onClose }) => {
     return (
@@ -260,7 +271,8 @@ const SwipeDeck = ({ items, onSelect }) => {
 // Isolated swipe card component (safe hooks usage)
 const SwipeCard = ({ card, index, deckLength, isTop, onSelect, cycleTop, animatingRef }) => {
     const x = useMotionValue(0);
-    const rotate = useTransform(x, [-300, 300], [-18, 18]);
+    const prefersReduced = useReducedMotion();
+    const rotate = useTransform(x, [-300, 300], prefersReduced ? [0, 0] : [-18, 18]);
     const controls = useAnimation();
     const mountedRef = useRef(false);
 
@@ -321,7 +333,7 @@ const SwipeCard = ({ card, index, deckLength, isTop, onSelect, cycleTop, animati
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.22}
             onDragEnd={handleDragEnd}
-            whileDrag={{ scale: 1.04, y: -4 }}
+            whileDrag={prefersReduced ? undefined : { scale: 1.04, y: -4 }}
             onDoubleClick={() => onSelect(p)}
             animate={controls}
             transition={{ layout: { duration: 0.45, ease: [0.25, 0.1, 0.25, 1] } }}
