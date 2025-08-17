@@ -1,8 +1,18 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { formatPrice } from '../utils';
+import { imageCache } from '../../utils/imageCache';
 
 const PropertyModal = ({ property, onClose }) => {
+  // Get optimized image URLs for modal
+  const imageUrls = useMemo(() =>
+    imageCache.getImageUrls(property.image, {
+      widths: [900, 1200, 1600],
+      quality: 75,
+      formats: ['avif', 'webp', 'jpg']
+    }), [property.image]
+  );
+
   return (
     <motion.div className="modal-portal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <motion.div className="modal-backdrop" onClick={onClose} />
@@ -12,7 +22,13 @@ const PropertyModal = ({ property, onClose }) => {
         exit={{ y: 40, opacity: 0, scale: 0.92, transition: { duration: 0.4 } }}
       >
         <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
-        <div className="modal-media" style={{ backgroundImage: `url(${property.image}?w=1400&auto=format&fit=crop&q=70)` }} />
+        <div
+          className="modal-media"
+          style={{
+            backgroundImage: `url(${imageUrls.base})`,
+            willChange: 'auto'
+          }}
+        />
         <div className="modal-body">
           <h3 className="modal-title">{property.title}</h3>
           <div className="modal-price">{formatPrice(property.price)}</div>

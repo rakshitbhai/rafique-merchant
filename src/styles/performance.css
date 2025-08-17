@@ -1,0 +1,141 @@
+/**
+ * Performance-optimized CSS additions
+ * These styles improve animation performance and reduce paint operations
+ */
+
+/* GPU acceleration for animated elements */
+.card,
+.swipe-card,
+.modal-panel,
+.property-card {
+    will-change: transform;
+    transform: translateZ(0);
+    /* Force GPU layer */
+    backface-visibility: hidden;
+}
+
+/* Optimize image rendering */
+img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+
+/* Reduce paint operations during animations */
+.card:hover,
+.swipe-card.top,
+.modal-panel {
+    contain: layout style paint;
+}
+
+/* Optimize scrolling performance */
+.properties-section {
+    contain: layout;
+}
+
+.properties-grid {
+    transform: translateZ(0);
+    will-change: auto;
+}
+
+/* Skeleton loading optimizations */
+.card-skeleton {
+    contain: strict;
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+            var(--color-neutral-800) 25%,
+            var(--color-neutral-700) 50%,
+            var(--color-neutral-800) 75%);
+    background-size: 200% 100%;
+}
+
+.skel-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.1) 50%,
+            transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite ease-in-out;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Error fallback styling */
+.image-error-fallback {
+    contain: strict;
+    user-select: none;
+}
+
+/* Optimize glass effects */
+.glass,
+.glass-strong {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+@supports not (backdrop-filter: blur()) {
+
+    .glass,
+    .glass-strong {
+        background: rgba(var(--glass-bg), 0.8);
+    }
+}
+
+/* Performance media queries */
+@media (prefers-reduced-motion: reduce) {
+
+    .card,
+    .swipe-card,
+    .modal-panel {
+        will-change: auto;
+        transform: none;
+    }
+
+    .skel-shimmer {
+        animation: none;
+    }
+}
+
+/* Low-end device optimizations */
+@media (max-width: 768px) and (max-height: 1024px) {
+
+    .glass,
+    .glass-strong {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+
+    .card-media img {
+        image-rendering: auto;
+    }
+}
+
+/* Reduce animation complexity on low memory devices */
+@media (max-width: 640px) {
+    .properties-grid {
+        will-change: auto;
+    }
+
+    .card:hover {
+        transform: translateY(-2px) !important;
+        transition: transform 0.2s ease !important;
+    }
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 2dppx) {
+    .card-media img {
+        image-rendering: -webkit-optimize-contrast;
+    }
+}

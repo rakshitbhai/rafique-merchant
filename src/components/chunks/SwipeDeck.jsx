@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion, useMotionValue, useTransform } from 'framer-motion';
 import { formatPrice } from '../utils';
+import { imageCache, performanceMonitor } from '../../utils/imageCache';
 
 /*
   Redesigned SwipeDeck:
@@ -33,13 +34,21 @@ const SwipeDeck = ({ items, onSelect }) => {
     return () => window.removeEventListener('resize', h);
   }, []);
 
-  // Preload the image 2 steps ahead
+  // Preload the image 2 steps ahead with caching
   useEffect(() => {
     if (!len) return;
+
+    performanceMonitor.markStart('swipe-preload');
     const preloadIdx = (index + VISIBLE) % len;
-    const url = `${items[preloadIdx].image}?w=720&auto=format&fit=crop&q=60&fm=webp`;
-    const img = new Image();
-    img.src = url;
+    const imageUrl = imageCache.getImageUrls(items[preloadIdx].image, {
+      widths: [720, 900],
+      quality: 60,
+      formats: ['webp', 'jpg']
+    }).base;
+
+    imageCache.preloadImage(imageUrl, 'low')
+      .then(() => performanceMonitor.markEnd('swipe-preload'))
+      .catch(() => performanceMonitor.markEnd('swipe-preload'));
   }, [index, items, len]);
 
   const goNext = useCallback((dir) => {
@@ -117,7 +126,16 @@ const CardLayer = ({ item, offset, onSelect, isTop, triggerFling, prefersReduced
   const shadow = offset === 0 ? '0 18px 40px -18px rgba(0,0,0,.65),0 4px 14px -6px rgba(0,0,0,.5)' : '0 8px 20px -12px rgba(0,0,0,.5)';
   const draggingRef = useRef(false);
 
-  const handleDragEnd = (_, info) => {
+  // Get optimized image URLs
+  const imageUrls = useMemo(() =>
+    imageCache.getImageUrls(item.image, {
+      widths: [720, 900],
+      quality: 60,
+      formats: ['webp', 'jpg']
+    }), [item.image]
+  );
+
+  const handleDragEnd = useCallback((_, info) => {
     if (!isTop) return;
     const dist = info.offset.x;
     const velo = info.velocity.x;
@@ -130,7 +148,7 @@ const CardLayer = ({ item, offset, onSelect, isTop, triggerFling, prefersReduced
       // spring back
       x.stop();
     }
-  };
+  }, [isTop, triggerFling, x]);
 
   return (
     <motion.div
@@ -138,14 +156,15 @@ const CardLayer = ({ item, offset, onSelect, isTop, triggerFling, prefersReduced
       aria-selected={isTop}
       className={`swipe-card glass-strong${isTop ? ' top' : ''}`}
       style={{
-        backgroundImage: `url(${item.image}?w=900&auto=format&fit=crop&q=60)`,
+        backgroundImage: `url(${imageUrls.base})`,
         zIndex: 50 - offset,
         x,
         rotate,
         scale,
         y,
         boxShadow: shadow,
-        cursor: isTop ? 'grab' : 'default'
+        cursor: isTop ? 'grab' : 'default',
+        willChange: isTop ? 'transform' : 'auto'
       }}
       drag={isTop ? 'x' : false}
       dragConstraints={{ left: 0, right: 0 }}
@@ -165,15 +184,26 @@ const CardLayer = ({ item, offset, onSelect, isTop, triggerFling, prefersReduced
 const LeavingCard = ({ data, viewportW, prefersReduced }) => {
   const { item, dir } = data;
   const dist = viewportW.current + FLY_DISTANCE_EXTRA;
+
+  // Get optimized image URLs for leaving card
+  const imageUrls = useMemo(() =>
+    imageCache.getImageUrls(item.image, {
+      widths: [720, 900],
+      quality: 60,
+      formats: ['webp', 'jpg']
+    }), [item.image]
+  );
+
   return (
     <motion.div
       className="swipe-card glass-strong leaving"
       style={{
-        backgroundImage: `url(${item.image}?w=900&auto=format&fit=crop&q=60)`,
+        backgroundImage: `url(${imageUrls.base})`,
         zIndex: 100,
         position: 'absolute',
         inset: 0,
-        cursor: 'default'
+        cursor: 'default',
+        willChange: 'transform, opacity'
       }}
       initial={{ x: 0, y: 0, rotate: 0, scale: 1 }}
       animate={{

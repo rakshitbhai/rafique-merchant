@@ -10,8 +10,13 @@ const perfHeuristic = (() => {
         const lowMem = (navigator.deviceMemory && navigator.deviceMemory <= 4);
         const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const conn = navigator.connection || navigator.webkitConnection || navigator.mozConnection;
-        const slowNet = conn && ['slow-2g', '2g'].includes(conn.effectiveType);
-        return lowHW || lowMem || reduced || slowNet;
+        const slowNet = conn && ['slow-2g', '2g', '3g'].includes(conn.effectiveType);
+
+        // Additional mobile/tablet detection for more conservative animations
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isLowEnd = lowHW || lowMem || reduced || slowNet || (isMobile && window.innerWidth < 768);
+
+        return isLowEnd;
     } catch (e) { return false; }
 })();
 
@@ -63,15 +68,15 @@ export const variants = {
         }
     },
 
-    // Card hover with magnetic effect
+    // Card hover with optimized magnetic effect
     cardMagnetic: {
         initial: { scale: 1, y: 0 },
-        hover: perfHeuristic ? { scale: 1.015, y: -4 } : {
+        hover: perfHeuristic ? { scale: 1.01, y: -2 } : {
             scale: 1.02,
             y: -8,
-            transition: { type: 'spring', stiffness: 400, damping: 25 }
+            transition: { type: 'spring', stiffness: 300, damping: 30 }
         },
-        tap: { scale: 0.985, transition: { duration: 0.1 } }
+        tap: { scale: 0.99, transition: { duration: 0.08 } }
     },
 
     // Staggered children animation
@@ -150,29 +155,45 @@ export const variants = {
 
     // Unified property card (entrance + hover refinement)
     propertyCard: {
-        initial: { opacity: 0, y: perfHeuristic ? 28 : 42, scale: perfHeuristic ? 1 : 0.95, ...(perfHeuristic ? {} : { filter: 'blur(6px)' }) },
+        initial: {
+            opacity: 0,
+            y: perfHeuristic ? 20 : 42,
+            scale: perfHeuristic ? 1 : 0.98
+        },
         animate: {
             opacity: 1,
             y: 0,
             scale: 1,
-            ...(perfHeuristic ? {} : { filter: 'blur(0px)' }),
-            transition: { duration: perfHeuristic ? 0.55 : 0.8, ease: perfHeuristic ? easings.elegant : easings.silk }
+            transition: {
+                duration: perfHeuristic ? 0.4 : 0.6,
+                ease: perfHeuristic ? easings.elegant : easings.silk
+            }
         },
-        hover: perfHeuristic ? { scale: 1.01, y: -3 } : {
-            scale: 1.012,
+        hover: perfHeuristic ? {
+            scale: 1.005,
+            y: -2,
+            transition: { duration: 0.2, ease: 'easeOut' }
+        } : {
+            scale: 1.01,
             y: -4,
-            transition: { type: 'spring', stiffness: 210, damping: 28, mass: 0.9 }
+            transition: { type: 'spring', stiffness: 200, damping: 25 }
         },
-        tap: { scale: 0.988, y: -1, transition: { duration: 0.1 } }
+        tap: { scale: 0.995, y: 0, transition: { duration: 0.08 } }
     },
 
     // Card media subtle cinematic scale
     propertyCardMedia: perfHeuristic ? {
         initial: { scale: 1 },
-        hover: { scale: 1.02, transition: { duration: 0.8, ease: easings.luxury } }
+        hover: {
+            scale: 1.01,
+            transition: { duration: 0.4, ease: easings.elegant }
+        }
     } : {
-        initial: { scale: 1, filter: 'saturate(104%) contrast(104%)' },
-        hover: { scale: 1.035, filter: 'saturate(112%) contrast(110%)', transition: { duration: 1.2, ease: easings.luxury } }
+        initial: { scale: 1 },
+        hover: {
+            scale: 1.025,
+            transition: { duration: 0.8, ease: easings.luxury }
+        }
     },
 
     // New subtle professional variants

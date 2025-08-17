@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState, memo, lazy, Suspense } from 'react';
+import React, { useEffect, useMemo, useRef, useState, memo, lazy, Suspense, useCallback } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { variants } from '../hooks/useAdvancedAnimations';
 import { useInView } from 'react-intersection-observer';
 import { formatPrice } from './utils';
+import { imageCache, useOptimizedImage, performanceMonitor } from '../utils/imageCache';
 
-const baseImgParams = 'auto=format&fit=crop&q=70'; // balanced quality
 const mockProperties = [
     { id: 1, title: 'Skyline Penthouse', location: 'Downtown Core', price: 5400000, type: 'Penthouse', beds: 4, baths: 5, size: 6200, image: 'https://images.unsplash.com/photo-1502005097973-6a7082348e28', blurb: 'Glass-framed panoramic city vistas with private roof deck and spa.' },
     { id: 2, title: 'Coastal Glass Villa', location: 'Azure Coast', price: 8700000, type: 'Villa', beds: 6, baths: 7, size: 9800, image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c', blurb: 'Seamless indoor-outdoor flow, infinity edge pool and ocean horizon.' },
@@ -29,7 +29,33 @@ const Properties = () => {
     const { ref: deckRef, inView: deckInView } = useInView({ triggerOnce: false, threshold: 0.2 });
     const [isNarrow, setIsNarrow] = useState(false);
 
-    // Detect narrow viewport to default to swipe mode option
+    // Preload critical images on component mount
+    useEffect(() => {
+        performanceMonitor.markStart('properties-load');
+
+        // Preload first 3 property images for instant display
+        const criticalImages = mockProperties.slice(0, 3).map(p => p.image);
+        const imageUrls = criticalImages.map(img =>
+            imageCache.getImageUrls(img, { quality: 75 }).base
+        );
+
+        imageCache.preloadSequence(imageUrls, 0, 3)
+            .then(() => performanceMonitor.markEnd('properties-load'))
+            .catch(console.warn);
+
+        return () => {
+            // Cleanup performance marks
+            if (typeof performance !== 'undefined') {
+                try {
+                    performance.clearMarks('properties-load-start');
+                    performance.clearMarks('properties-load-end');
+                } catch (e) {
+                    // Ignore cleanup errors
+                }
+            }
+        };
+    }, []);
+
     // Throttled resize listener to avoid layout thrash
     useEffect(() => {
         let frame = null;
@@ -42,7 +68,10 @@ const Properties = () => {
         };
         check();
         window.addEventListener('resize', check, { passive: true });
-        return () => { window.removeEventListener('resize', check); if (frame) cancelAnimationFrame(frame); };
+        return () => {
+            window.removeEventListener('resize', check);
+            if (frame) cancelAnimationFrame(frame);
+        };
     }, []);
 
     useEffect(() => {
@@ -51,23 +80,39 @@ const Properties = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isNarrow]);
 
+    // Optimize filtered list calculation and add memoization
     const filtered = useMemo(() => {
+        performanceMonitor.markStart('filter-properties');
+
         let list = mockProperties.filter(p =>
             (!type || p.type === type) &&
-            (!query || p.title.toLowerCase().includes(query.toLowerCase()) || p.location.toLowerCase().includes(query.toLowerCase()))
+            (!query || p.title.toLowerCase().includes(query.toLowerCase()) ||
+                p.location.toLowerCase().includes(query.toLowerCase()))
         );
+
         if (sort === 'price-asc') list = [...list].sort((a, b) => a.price - b.price);
         if (sort === 'price-desc') list = [...list].sort((a, b) => b.price - a.price);
+
+        performanceMonitor.markEnd('filter-properties');
         return list;
     }, [query, type, sort]);
 
-    // Animate stats when scrolled into view
+    // Animate stats when scrolled into view with proper cleanup
     useEffect(() => {
-        const el = statsRef.current; if (!el) return;
+        const el = statsRef.current;
+        if (!el) return;
+
         const io = new IntersectionObserver((entries) => {
-            entries.forEach(e => { if (e.isIntersecting) { setShowStats(true); io.disconnect(); } });
-        }, { threshold: 0.4 });
-        io.observe(el); return () => io.disconnect();
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    setShowStats(true);
+                    io.disconnect();
+                }
+            });
+        }, { threshold: 0.4, rootMargin: '50px' });
+
+        io.observe(el);
+        return () => io.disconnect();
     }, []);
 
     return (
@@ -173,12 +218,42 @@ const StatsRow = ({ show, statsRef, total, count }) => {
 const PropertyCard = memo(({ property, index, feature = false, onQuickView }) => {
     const { id, image, title, price, location, type, beds, baths, size } = property;
     const [loaded, setLoaded] = useState(false);
-    const widthMain = feature ? 1400 : 900;
-    const baseJpg = `${image}?w=${widthMain}&${baseImgParams}&fm=jpg`;
-    const srcSetJpg = `${image}?w=480&${baseImgParams}&fm=jpg 480w, ${image}?w=720&${baseImgParams}&fm=jpg 720w, ${image}?w=900&${baseImgParams}&fm=jpg 900w, ${image}?w=1400&${baseImgParams}&fm=jpg 1400w`;
-    const srcSetWebp = `${image}?w=480&${baseImgParams}&fm=webp 480w, ${image}?w=720&${baseImgParams}&fm=webp 720w, ${image}?w=900&${baseImgParams}&fm=webp 900w, ${image}?w=1400&${baseImgParams}&fm=webp 1400w`;
-    const srcSetAvif = `${image}?w=480&${baseImgParams}&fm=avif 480w, ${image}?w=720&${baseImgParams}&fm=avif 720w, ${image}?w=900&${baseImgParams}&fm=avif 900w, ${image}?w=1400&${baseImgParams}&fm=avif 1400w`;
-    const lowBlur = `${image}?w=80&blur=80&auto=format&q=20`;
+    const [imageError, setImageError] = useState(false);
+    const imgRef = useRef(null);
+
+    // Use optimized image URLs with caching
+    const { urls } = useOptimizedImage(image, {
+        widths: feature ? [480, 720, 900, 1400] : [320, 480, 720, 900],
+        formats: ['avif', 'webp', 'jpg'],
+        quality: feature ? 75 : 70
+    });
+
+    const sizeAttr = feature ? urls.sizes.feature : urls.sizes.card;
+
+    // Preload next images in sequence for smooth scrolling
+    useEffect(() => {
+        if (index < 3) { // Preload first 3 images
+            performanceMonitor.markStart(`preload-${id}`);
+            imageCache.preloadImage(urls.base, 'high')
+                .then(() => performanceMonitor.markEnd(`preload-${id}`))
+                .catch(() => setImageError(true));
+        }
+    }, [urls.base, index, id]);
+
+    const handleImageLoad = useCallback(() => {
+        setLoaded(true);
+        performanceMonitor.markEnd(`image-load-${id}`);
+    }, [id]);
+
+    const handleImageError = useCallback(() => {
+        setImageError(true);
+        setLoaded(true); // Prevent infinite loading state
+    }, []);
+
+    useEffect(() => {
+        performanceMonitor.markStart(`image-load-${id}`);
+    }, [id]);
+
     return (
         <motion.article
             className={`card glass-strong ${feature ? 'feature-card' : ''}`}
@@ -189,28 +264,99 @@ const PropertyCard = memo(({ property, index, feature = false, onQuickView }) =>
             whileTap="tap"
             style={{ '--card-index': index }}
         >
-            {!loaded && <div className="card-skeleton"><div className="skel-shimmer" /></div>}
-            <motion.figure className="card-media" variants={variants.propertyCardMedia} style={{ margin: 0 }}>
-                <picture>
-                    <source type="image/avif" srcSet={srcSetAvif} sizes={feature ? '(min-width: 1100px) 560px, (min-width:640px) 50vw, 100vw' : '(min-width:900px) 320px, (min-width:640px) 33vw, 100vw'} />
-                    <source type="image/webp" srcSet={srcSetWebp} sizes={feature ? '(min-width: 1100px) 560px, (min-width:640px) 50vw, 100vw' : '(min-width:900px) 320px, (min-width:640px) 33vw, 100vw'} />
-                    <img
-                        src={baseJpg}
-                        srcSet={srcSetJpg}
-                        sizes={feature ? '(min-width: 1100px) 560px, (min-width:640px) 50vw, 100vw' : '(min-width:900px) 320px, (min-width:640px) 33vw, 100vw'}
-                        alt={title}
-                        loading="lazy"
-                        decoding="async"
-                        onLoad={() => setLoaded(true)}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: loaded ? 1 : 0.15, transition: 'opacity 600ms ease', filter: loaded ? 'none' : 'blur(14px) saturate(120%)' }}
+            {!loaded && !imageError && (
+                <div className="card-skeleton">
+                    <div className="skel-shimmer" />
+                </div>
+            )}
+
+            <motion.figure
+                className="card-media"
+                variants={variants.propertyCardMedia}
+                style={{ margin: 0 }}
+            >
+                {!imageError ? (
+                    <picture>
+                        <source
+                            type="image/avif"
+                            srcSet={urls.srcSets.avif}
+                            sizes={sizeAttr}
+                        />
+                        <source
+                            type="image/webp"
+                            srcSet={urls.srcSets.webp}
+                            sizes={sizeAttr}
+                        />
+                        <img
+                            ref={imgRef}
+                            src={urls.base}
+                            srcSet={urls.srcSets.jpg}
+                            sizes={sizeAttr}
+                            alt={title}
+                            loading={index < 2 ? "eager" : "lazy"}
+                            decoding="async"
+                            fetchPriority={feature ? "high" : "low"}
+                            onLoad={handleImageLoad}
+                            onError={handleImageError}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                opacity: loaded ? 1 : 0,
+                                transition: 'opacity 400ms ease',
+                                willChange: loaded ? 'auto' : 'opacity'
+                            }}
+                        />
+                    </picture>
+                ) : (
+                    <div
+                        className="image-error-fallback"
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            background: 'linear-gradient(135deg, var(--color-neutral-800), var(--color-neutral-700))',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--color-neutral-400)',
+                            fontSize: '0.8rem'
+                        }}
+                    >
+                        Image unavailable
+                    </div>
+                )}
+
+                {/* Low quality placeholder */}
+                {!loaded && !imageError && (
+                    <div
+                        aria-hidden="true"
+                        style={{
+                            position: 'absolute',
+                            inset: 0,
+                            backgroundImage: `url(${urls.lowQuality})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            filter: 'blur(20px) saturate(140%)',
+                            transition: 'opacity 400ms ease',
+                            opacity: 0.7,
+                            willChange: 'opacity'
+                        }}
                     />
-                </picture>
-                {/* Ultra low-res blurred background layer */}
-                {!loaded && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: `url(${lowBlur})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(20px) saturate(140%)', transition: 'opacity 400ms ease', opacity: 0.9 }} />}
+                )}
             </motion.figure>
+
             <div className="card-content">
                 <span className="badge">{type}</span>
-                <h3 id={`prop-${id}-title`} style={{ margin: '0.9rem 0 .4rem', fontSize: feature ? '1.65rem' : '1.25rem', fontWeight: 500 }}>{title}</h3>
+                <h3
+                    id={`prop-${id}-title`}
+                    style={{
+                        margin: '0.9rem 0 .4rem',
+                        fontSize: feature ? '1.65rem' : '1.25rem',
+                        fontWeight: 500
+                    }}
+                >
+                    {title}
+                </h3>
                 <div className="price">{formatPrice(price)}</div>
                 <div className="location">{location}</div>
                 <div className="card-meta-row">
@@ -219,12 +365,15 @@ const PropertyCard = memo(({ property, index, feature = false, onQuickView }) =>
                     <span>{size.toLocaleString()} SF</span>
                 </div>
             </div>
+
             <button
                 type="button"
                 className="quick-view-tag"
                 aria-label={`View details for ${title}`}
                 onClick={onQuickView}
-            >View</button>
+            >
+                View
+            </button>
         </motion.article>
     );
 });

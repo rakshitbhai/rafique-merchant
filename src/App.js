@@ -4,6 +4,8 @@ import { variants } from './hooks/useAdvancedAnimations';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Footer from './components/Footer';
+import PerformanceMonitor from './components/PerformanceMonitor';
+import './styles/performance.css';
 const Contact = lazy(() => import('./components/Contact'));
 // Code-split heavier sections (declare after all static imports per eslint import/first rule)
 const Properties = lazy(() => import(/* webpackChunkName: 'properties-chunk' */ './components/Properties'));
@@ -30,6 +32,7 @@ function App() {
     useReveal();
     return (
         <>
+            <PerformanceMonitor enabled={process.env.NODE_ENV === 'development'} />
             <Navbar />
             <motion.main
                 initial="initial"
