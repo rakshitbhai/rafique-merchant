@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkrafiq_merchant=self.webpackChunkrafiq_merchant||[]).push([[148],{1711:(e,a,c)=>{c.r(a),c.d(a,{default:()=>r});const r={}}}]);
+//# sourceMappingURL=full-theme.284acde4.chunk.js.map
