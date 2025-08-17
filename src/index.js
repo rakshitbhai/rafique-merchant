@@ -13,7 +13,7 @@ root.render(
 );
 
 // Defer loading of full theme (bundled via webpack) using dynamic import to avoid direct /src reference
-const importFullTheme = () => import(/* webpackChunkName: 'full-theme' */ './styles/theme.css').catch(() => {});
+const importFullTheme = () => import(/* webpackChunkName: 'full-theme' */ './styles/theme.css').catch(() => { });
 if ('requestIdleCallback' in window) {
   // @ts-ignore
   requestIdleCallback(() => importFullTheme(), { timeout: 2000 });

@@ -113,7 +113,7 @@ const Properties = () => {
                 {viewMode === 'swipe' && (
                     <div ref={deckRef}>
                         {deckInView && (
-                            <Suspense fallback={<div style={{height:520,display:'grid',placeItems:'center',fontSize:'.6rem',letterSpacing:'.3em',textTransform:'uppercase',color:'var(--color-neutral-500)'}}>Loading deck…</div>}>
+                            <Suspense fallback={<div style={{ height: 520, display: 'grid', placeItems: 'center', fontSize: '.6rem', letterSpacing: '.3em', textTransform: 'uppercase', color: 'var(--color-neutral-500)' }}>Loading deck…</div>}>
                                 <LazySwipeDeck items={filtered} onSelect={setSelected} />
                             </Suspense>
                         )}
@@ -206,7 +206,7 @@ const PropertyCard = memo(({ property, index, feature = false, onQuickView }) =>
                     />
                 </picture>
                 {/* Ultra low-res blurred background layer */}
-                {!loaded && <div aria-hidden="true" style={{position:'absolute',inset:0,backgroundImage:`url(${lowBlur})`,backgroundSize:'cover',backgroundPosition:'center',filter:'blur(20px) saturate(140%)',transition:'opacity 400ms ease',opacity:0.9}} />}
+                {!loaded && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: `url(${lowBlur})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(20px) saturate(140%)', transition: 'opacity 400ms ease', opacity: 0.9 }} />}
             </motion.figure>
             <div className="card-content">
                 <span className="badge">{type}</span>

@@ -1,7 +1,6 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { motion } from 'framer-motion';
 import { variants } from './hooks/useAdvancedAnimations';
-import './styles/theme.css';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import PerfToggle from './components/PerfToggle';
@@ -75,7 +74,7 @@ function App() {
                         </motion.div>
                     </div>
                 </section>
-                <Suspense fallback={<div style={{minHeight:'30vh',display:'grid',placeItems:'center',fontSize:'.7rem',letterSpacing:'.3em',textTransform:'uppercase',color:'var(--color-neutral-500)'}}>Loading contact…</div>}>
+                <Suspense fallback={<div style={{ minHeight: '30vh', display: 'grid', placeItems: 'center', fontSize: '.7rem', letterSpacing: '.3em', textTransform: 'uppercase', color: 'var(--color-neutral-500)' }}>Loading contact…</div>}>
                     <Contact />
                 </Suspense>
             </motion.main>
