@@ -1,131 +1,207 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { motion, useAnimation, useMotionValue, useTransform, useReducedMotion } from 'framer-motion';
-import { variants } from '../../hooks/useAdvancedAnimations';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion, useMotionValue, useTransform } from 'framer-motion';
 import { formatPrice } from '../utils';
 
-const SwipeDeck = ({ items, onSelect }) => {
-  const [deck, setDeck] = useState(items);
-  const animatingRef = useRef(false);
-  useEffect(() => { setDeck(items); animatingRef.current = false; }, [items]);
+/*
+  Redesigned SwipeDeck:
+  - Uses an index pointer instead of mutating an array (less GC & re-renders)
+  - Renders only the top 3 cards + an ephemeral "leaving" card during fling
+  - Velocity & distance based fling with spring settle for cancel
+  - Early index advance timed to mid-flight for snappier feel without flicker
+  - Keyboard accessibility (Left/Right to simulate swipe, Enter/Space for details)
+  - Reduced motion friendly (no rotation / depth scale if prefers-reduced-motion)
+  - Preloads next image to cut decode hitch
+*/
 
-  const cycleTop = useCallback(() => {
-    setDeck(d => {
-      if (!d.length) return d;
-      const arr = [...d];
-      const top = arr.pop();
-      if (!top) return d;
-      arr.unshift({ ...top, _cycle: (top._cycle || 0) + 1 });
-      return arr;
-    });
+const VISIBLE = 3;
+const FLY_DISTANCE_EXTRA = 160; // extra px beyond viewport for off-screen flight
+const FLY_DURATION = 0.38; // s
+const THRESHOLD_PX = 110;
+const THRESHOLD_VELO = 620;
+
+const SwipeDeck = ({ items, onSelect }) => {
+  const [index, setIndex] = useState(0); // pointer to current top
+  const [leaving, setLeaving] = useState(null); // { item, dir, key }
+  const len = items.length;
+  const prefersReduced = useReducedMotion();
+  const viewportW = useRef(typeof window !== 'undefined' ? window.innerWidth : 1024);
+
+  // Update viewport width on resize (cheap)
+  useEffect(() => {
+    const h = () => { viewportW.current = window.innerWidth; };
+    window.addEventListener('resize', h, { passive: true });
+    return () => window.removeEventListener('resize', h);
   }, []);
 
+  // Preload the image 2 steps ahead
+  useEffect(() => {
+    if (!len) return;
+    const preloadIdx = (index + VISIBLE) % len;
+    const url = `${items[preloadIdx].image}?w=720&auto=format&fit=crop&q=60&fm=webp`;
+    const img = new Image();
+    img.src = url;
+  }, [index, items, len]);
+
+  const goNext = useCallback((dir) => {
+    // dir: 1 for right, -1 for left
+    if (!len) return;
+    setIndex(i => (i + 1) % len);
+  }, [len]);
+
+  const displayed = useMemo(() => {
+    if (!len) return [];
+    const arr = [];
+    for (let o = 0; o < Math.min(VISIBLE, len); o++) {
+      const idx = (index + o) % len;
+      arr.push({ item: items[idx], offset: o, stackKey: `${items[idx].id}-${Math.floor((index + o) / len)}` });
+    }
+    return arr;
+  }, [index, items, len]);
+
+  // Keyboard support
+  useEffect(() => {
+    const handler = (e) => {
+      if (!len) return;
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        triggerFling(e.key === 'ArrowRight' ? 1 : -1);
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onSelect && onSelect(items[index]);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [index, items, len, onSelect, triggerFling]);
+
+  // Public fling trigger used by keyboard
+  const triggerFling = (dir) => {
+    if (!len) return;
+    const top = items[index];
+    const leaveKey = `${top.id}-leave-${Date.now()}`;
+    setLeaving({ item: top, dir, key: leaveKey });
+    // Advance index mid-flight for responsiveness
+    setTimeout(() => { goNext(dir); }, FLY_DURATION * 500); // about half animation
+    // Clear leaving after animation window
+    setTimeout(() => { setLeaving(l => (l && l.key === leaveKey ? null : l)); }, FLY_DURATION * 1000 + 80);
+  };
+
   return (
-    <div className="swipe-deck">
-      {deck.map((p, idx) => (
-        <SwipeCard
-          key={`${p.id}-${p._cycle || 0}`}
-          card={p}
-          index={idx}
-          deckLength={deck.length}
-          isTop={idx === deck.length - 1}
+    <div className="swipe-deck" aria-label="Property swipe deck" role="list" style={{ position: 'relative' }}>
+      <AnimatePresence>
+        {leaving && (
+          <LeavingCard key={leaving.key} data={leaving} viewportW={viewportW} prefersReduced={prefersReduced} />
+        )}
+      </AnimatePresence>
+      {displayed.map(({ item, offset, stackKey }) => (
+        <CardLayer
+          key={stackKey}
+          item={item}
+          offset={offset}
           onSelect={onSelect}
-          cycleTop={cycleTop}
-          animatingRef={animatingRef}
+          isTop={offset === 0 && !leaving}
+          triggerFling={triggerFling}
+          prefersReduced={prefersReduced}
+          viewportW={viewportW}
         />
       ))}
     </div>
   );
 };
 
-const SwipeCard = ({ card, index, deckLength, isTop, onSelect, cycleTop, animatingRef }) => {
+const CardLayer = ({ item, offset, onSelect, isTop, triggerFling, prefersReduced, viewportW }) => {
   const x = useMotionValue(0);
-  const prefersReduced = useReducedMotion();
-  const rotate = useTransform(x, [-300, 300], prefersReduced ? [0, 0] : [-18, 18]);
-  const controls = useAnimation();
-  const mountedRef = useRef(false);
-  const offscreenXRef = useRef(0);
-  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
-  // Cache offscreen travel distance once per mount (avoid repeated layout reads on fast swipes)
-  useEffect(() => { offscreenXRef.current = window.innerWidth + 260; }, []);
-  useEffect(() => {
-    if (!mountedRef.current) return;
-    controls.start({
-      scale: 1 - (deckLength - 1 - index) * 0.028,
-      y: (deckLength - 1 - index) * 16,
-      opacity: 1,
-      transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] }
-    });
-  }, [controls, deckLength, index]);
+  const rotate = useTransform(x, [-320, 320], prefersReduced ? [0, 0] : [-15, 15]);
+  const scale = prefersReduced ? 1 : 1 - offset * 0.05;
+  const y = prefersReduced ? offset * 10 : offset * 14;
+  const shadow = offset === 0 ? '0 18px 40px -18px rgba(0,0,0,.65),0 4px 14px -6px rgba(0,0,0,.5)' : '0 8px 20px -12px rgba(0,0,0,.5)';
+  const draggingRef = useRef(false);
 
   const handleDragEnd = (_, info) => {
-    if (!isTop || animatingRef.current) return;
-    const threshold = 120;
-    const velocity = info.velocity.x;
-    const offset = info.offset.x;
-    const dir = offset > 0 ? 1 : -1;
-    const shouldFly = Math.abs(offset) > threshold || Math.abs(velocity) > 650;
-    if (shouldFly) {
-      animatingRef.current = true;
-      if (mountedRef.current) {
-        let cycled = false;
-        controls.start({
-          x: dir * offscreenXRef.current,
-          y: -120,
-          rotate: dir * 24,
-          scale: 1.04,
-          transition: { duration: 0.42, ease: [0.16, 1, 0.3, 1] }
-        }).finally(() => {
-          if (!cycled && mountedRef.current) {
-            cycleTop();
-            animatingRef.current = false;
-          }
-        });
-        // Early cycle for responsiveness (let next card appear while old continues visually off-screen)
-        setTimeout(() => {
-          if (!cycled && mountedRef.current) {
-            cycled = true;
-            cycleTop();
-            animatingRef.current = false;
-          }
-        }, 260);
-      }
+    if (!isTop) return;
+    const dist = info.offset.x;
+    const velo = info.velocity.x;
+    const dir = dist > 0 ? 1 : -1;
+    const should = Math.abs(dist) > THRESHOLD_PX || Math.abs(velo) > THRESHOLD_VELO;
+    if (should) {
+      draggingRef.current = false;
+      triggerFling(dir);
     } else {
-      if (mountedRef.current) {
-        controls.start({ x: 0, y: 0, rotate: 0, scale: 1, transition: { type: 'spring', stiffness: 420, damping: 28 } });
-      }
+      // spring back
+      x.stop();
     }
   };
 
-  const p = card;
   return (
     <motion.div
-      className={`swipe-card glass-strong ${isTop ? 'top' : ''}`}
-      style={{ backgroundImage: `url(${p.image}?w=900&auto=format&fit=crop&q=60)`, zIndex: 10 + index, x, rotate, boxShadow: isTop ? '0 18px 40px -18px rgba(0,0,0,.65),0 4px 14px -6px rgba(0,0,0,.5)' : undefined }}
-      initial={{ scale: 0.94, y: 40, opacity: 0 }}
+      role={isTop ? 'option' : 'presentation'}
+      aria-selected={isTop}
+      className={`swipe-card glass-strong${isTop ? ' top' : ''}`}
+      style={{
+        backgroundImage: `url(${item.image}?w=900&auto=format&fit=crop&q=60)`,
+        zIndex: 50 - offset,
+        x,
+        rotate,
+        scale,
+        y,
+        boxShadow: shadow,
+        cursor: isTop ? 'grab' : 'default'
+      }}
       drag={isTop ? 'x' : false}
       dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.22}
+      dragElastic={0.25}
       onDragEnd={handleDragEnd}
-      whileDrag={prefersReduced ? undefined : { scale: 1.04, y: -4 }}
-      onDoubleClick={() => onSelect(p)}
-      animate={controls}
-      variants={variants.propertyCard}
-      transition={{ layout: { duration: 0.45, ease: [0.25, 0.1, 0.25, 1] } }}
+      whileDrag={prefersReduced ? undefined : { scale: scale * 1.035, y: y - 4 }}
+      initial={{ opacity: 0, scale: scale * 0.94, y: y + 20 }}
+      animate={{ opacity: 1, scale, y, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } }}
+      exit={{ opacity: 0, y: y - 40, scale: scale * 0.9, transition: { duration: 0.25 } }}
+      onDoubleClick={() => onSelect && onSelect(item)}
     >
-      <div className="swipe-card-overlay">
-        <div className="swipe-meta">
-          <span className="badge" style={{ marginBottom: '.6rem' }}>{p.type}</span>
-          <h3>{p.title}</h3>
-          <p className="loc">{p.location}</p>
-          <p className="price-line">{formatPrice(p.price)}</p>
-          <div className="mini-meta">{p.beds} BD • {p.baths} BA • {p.size.toLocaleString()} SF</div>
-        </div>
-        <div className="swipe-actions">
-          <button className="cta small" onClick={() => onSelect(p)}>Details</button>
-        </div>
-      </div>
+      <CardInner item={item} onSelect={onSelect} />
     </motion.div>
   );
 };
+
+const LeavingCard = ({ data, viewportW, prefersReduced }) => {
+  const { item, dir } = data;
+  const dist = viewportW.current + FLY_DISTANCE_EXTRA;
+  return (
+    <motion.div
+      className="swipe-card glass-strong leaving"
+      style={{
+        backgroundImage: `url(${item.image}?w=900&auto=format&fit=crop&q=60)`,
+        zIndex: 100,
+        position: 'absolute',
+        inset: 0,
+        cursor: 'default'
+      }}
+      initial={{ x: 0, y: 0, rotate: 0, scale: 1 }}
+      animate={{
+        x: dir * dist,
+        y: -120,
+        rotate: prefersReduced ? 0 : dir * 26,
+        scale: 1.05,
+        opacity: 0.9,
+        transition: { duration: FLY_DURATION, ease: [0.16, 1, 0.3, 1] }
+      }}
+      exit={{ opacity: 0, transition: { duration: 0.15 } }}
+    >
+      <CardInner item={item} />
+    </motion.div>
+  );
+};
+
+const CardInner = ({ item, onSelect }) => (
+  <div className="swipe-card-overlay">
+    <div className="swipe-meta">
+      <span className="badge" style={{ marginBottom: '.6rem' }}>{item.type}</span>
+      <h3>{item.title}</h3>
+      <p className="loc">{item.location}</p>
+      <p className="price-line">{formatPrice(item.price)}</p>
+      <div className="mini-meta">{item.beds} BD • {item.baths} BA • {item.size.toLocaleString()} SF</div>
+    </div>
+    {onSelect && <div className="swipe-actions"><button className="cta small" onClick={() => onSelect(item)}>Details</button></div>}
+  </div>
+);
 
 export default SwipeDeck;

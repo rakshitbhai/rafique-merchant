@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { variants } from './hooks/useAdvancedAnimations';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
-import PerfToggle from './components/PerfToggle';
 import Footer from './components/Footer';
 const Contact = lazy(() => import('./components/Contact'));
 // Code-split heavier sections (declare after all static imports per eslint import/first rule)
@@ -79,7 +78,6 @@ function App() {
                 </Suspense>
             </motion.main>
             <Footer />
-            <PerfToggle />
         </>
     );
 }

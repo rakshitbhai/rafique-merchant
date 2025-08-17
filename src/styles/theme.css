@@ -39,49 +39,6 @@
     --font-display: "Playfair Display", "Cormorant Garamond", serif;
 }
 
-/* Performance mode (applied via <html class="perf-mode"> by optional future script) */
-.perf-mode .glass,
-.perf-mode .glass-strong,
-.perf-mode .quick-view-tag,
-.perf-mode .filter-pill,
-.perf-mode .hero-spline,
-.perf-mode .founder-card,
-.perf-mode .value,
-/* exclude swipe-card from generic card background override to keep image vivid */
-.perf-mode .card:not(.swipe-card),
-.perf-mode .mobile-drawer,
-.perf-mode .modal-panel {
-    /* Replace expensive backdrop-filter with flat translucent backdrop-color only (preserve any background-image) */
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background-color: rgba(32, 32, 36, 0.72) !important;
-}
-
-.perf-mode .hero-accent {
-    display: none !important;
-}
-
-.perf-mode .card-media {
-    filter: none !important;
-}
-
-.perf-mode .signature-word-pill {
-    box-shadow: none;
-}
-
-.perf-mode .founder-card::after {
-    display: none !important;
-}
-
-.perf-mode .swipe-card {
-    background-color: transparent !important;
-    background-blend-mode: normal;
-}
-
-/* Lighten the gradient overlay for perf-mode (make image more visible) */
-.perf-mode .swipe-card::after {
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, .55));
-}
 
 /* Targeted will-change only on interactive elements */
 .card,
@@ -110,10 +67,6 @@ body {
     /* Remove blue tap highlight (inkwell) on mobile */
 }
 
-/* In explicit performance mode, prefer native instantaneous scroll for snappier feel */
-.perf-mode {
-    scroll-behavior: auto;
-}
 
 /* Progressive rendering hint: only apply to heavy sections (avoids interfering with hero above-the-fold animations) */
 .properties-section,
