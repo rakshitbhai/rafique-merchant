@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, Suspense, lazy } from 'react';
+import React, { useEffect, useRef, useState, Suspense, lazy, useCallback } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import portraitImg from '../assets/rafique-merchant.png';
 import { variants, smoothScrollTo } from '../hooks/useAdvancedAnimations';
@@ -7,11 +7,27 @@ const LazySpline = lazy(() => import(/* webpackChunkName: 'spline-hero' */ '@spl
 
 const Hero = () => {
     const splineRef = useRef(null);
-    const [mountSpline, setMountSpline] = useState(false);
+    const [mountSpline, setMountSpline] = useState(false); // actually mount component
     const [splineLoaded, setSplineLoaded] = useState(false);
     const [splineFailed, setSplineFailed] = useState(false);
-    // Whether we are permitted to load Spline (reduced motion gate / user override)
-    const [allowSpline, setAllowSpline] = useState(true);
+    // Autoload eligibility heuristics (avoid auto-loading 500KB+ on weak / constrained conditions)
+    const canAutoloadSpline = useCallback(() => {
+        if (typeof navigator === 'undefined') return true;
+        const conn = navigator.connection || navigator.webkitConnection || navigator.mozConnection;
+        const saveData = conn && conn.saveData;
+        const effectiveType = conn && conn.effectiveType; // e.g. '4g','3g'
+        const cores = navigator.hardwareConcurrency || 2;
+        const memory = navigator.deviceMemory || 4; // in GiB (rounded)
+        // Criteria: no data saver, decent connection or unknown, >=4 cores & >=4GB memory
+        if (saveData) return false;
+        if (effectiveType && /^(2g|3g)$/.test(effectiveType)) return false;
+        if (cores < 4) return false;
+        if (memory < 4) return false;
+        return true;
+    }, []);
+    const [autoloadEligible, setAutoloadEligible] = useState(true);
+    // Whether we are permitted to load Spline (reduced motion + heuristics + user override)
+    const [allowSpline, setAllowSpline] = useState(false);
     const [userEnabledSpline, setUserEnabledSpline] = useState(false);
     const prefersReducedMotion = useReducedMotion();
     // Signature colloquial words and extended creative phrases
@@ -48,24 +64,31 @@ const Hero = () => {
 
     // Determine allowance (respect prefers-reduced-motion only). Mobile now allowed; we optimize height via CSS.
     useEffect(() => {
-        if (prefersReducedMotion && !userEnabledSpline) {
-            setAllowSpline(false);
-        } else {
-            setAllowSpline(true);
-        }
-    }, [prefersReducedMotion, userEnabledSpline]);
+        // Evaluate heuristics once (won't change often)
+        setAutoloadEligible(canAutoloadSpline());
+    }, [canAutoloadSpline]);
 
-    // Lazy mount Spline when hero in view (saves initial payload)
+    useEffect(() => {
+        // Allow only if (not reduced motion) OR user explicitly enabled, and heuristics pass or user forced
+        if ((userEnabledSpline || !prefersReducedMotion) && (autoloadEligible || userEnabledSpline)) {
+            setAllowSpline(true);
+        } else {
+            setAllowSpline(false);
+        }
+    }, [prefersReducedMotion, userEnabledSpline, autoloadEligible]);
+
+    // Lazy mount Spline when hero in view (only if autoloadEligible or user opted in)
     useEffect(() => {
         const el = splineRef.current;
         if (!el) return;
-        if (!allowSpline) return; // do not observe if not allowed
+        if (!allowSpline) return; // not allowed yet
+        if (!autoloadEligible && !userEnabledSpline) return; // waiting for user to enable
         const io = new IntersectionObserver((entries) => {
             entries.forEach(e => { if (e.isIntersecting) { setMountSpline(true); io.disconnect(); } });
-        }, { threshold: 0.15 });
+        }, { threshold: 0.2 });
         io.observe(el);
         return () => io.disconnect();
-    }, [allowSpline]);
+    }, [allowSpline, autoloadEligible, userEnabledSpline]);
 
     // Safety timeout: if Spline never calls onLoad within 12s, mark failed
     useEffect(() => {
@@ -126,7 +149,7 @@ const Hero = () => {
                         aria-busy={allowSpline && !splineLoaded && !splineFailed}
                         data-visual-mode={allowSpline ? '3d' : 'static'}
                     >
-                        {allowSpline && !mountSpline && (
+                        {allowSpline && autoloadEligible && !mountSpline && (
                             <div className="spline-inline-loading" aria-hidden="true">
                                 <span className="pulse-dot" />
                                 <span className="load-text">Preparing…</span>
@@ -155,8 +178,8 @@ const Hero = () => {
                         {!allowSpline && !splineFailed && (
                             <div className="spline-static-fallback" aria-hidden="true">
                                 <div className="fallback-ring" />
-                                {prefersReducedMotion && !userEnabledSpline && (
-                                    <button type="button" className="enable-3d-btn" onClick={() => setUserEnabledSpline(true)}>Enable 3D</button>
+                                {(!autoloadEligible || prefersReducedMotion) && !userEnabledSpline && (
+                                    <button type="button" className="enable-3d-btn" onClick={() => setUserEnabledSpline(true)}>Activate 3D Experience</button>
                                 )}
                             </div>
                         )}

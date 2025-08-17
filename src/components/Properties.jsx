@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState, memo, lazy, Suspense } from 'react';
-import { motion, AnimatePresence, useAnimation, useMotionValue, useTransform, useReducedMotion } from 'framer-motion';
+import React, { useEffect, useMemo, useRef, useState, memo, lazy, Suspense } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { variants } from '../hooks/useAdvancedAnimations';
 import { useInView } from 'react-intersection-observer';
 import { formatPrice } from './utils';
@@ -230,107 +230,5 @@ const PropertyCard = memo(({ property, index, feature = false, onQuickView }) =>
 });
 PropertyCard.displayName = 'PropertyCard';
 
-// (Modal & SwipeDeck extracted to code-split chunks)
-
-// Isolated swipe card component (safe hooks usage)
-const SwipeCard = ({ card, index, deckLength, isTop, onSelect, cycleTop, animatingRef }) => {
-    const x = useMotionValue(0);
-    const prefersReduced = useReducedMotion();
-    const rotate = useTransform(x, [-300, 300], prefersReduced ? [0, 0] : [-18, 18]);
-    const controls = useAnimation();
-    const mountedRef = useRef(false);
-
-    // Track mount status to prevent calling controls.start before mounted
-    useEffect(() => {
-        mountedRef.current = true;
-        return () => { mountedRef.current = false; };
-    }, []);
-
-    // Initial / stack position animation
-    useEffect(() => {
-        if (!mountedRef.current) return;
-        controls.start({
-            scale: 1 - (deckLength - 1 - index) * 0.028,
-            y: (deckLength - 1 - index) * 16,
-            opacity: 1,
-            transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] }
-        });
-    }, [controls, deckLength, index]);
-
-    const handleDragEnd = (event, info) => {
-        if (!isTop || animatingRef.current) return;
-        const threshold = 120;
-        const velocity = info.velocity.x;
-        const offset = info.offset.x;
-        const dir = offset > 0 ? 1 : -1;
-        const shouldFly = Math.abs(offset) > threshold || Math.abs(velocity) > 650;
-        if (shouldFly) {
-            animatingRef.current = true;
-            if (mountedRef.current) {
-                let finished = false;
-                controls.start({
-                    x: dir * (window.innerWidth + 260),
-                    y: -140,
-                    rotate: dir * 26,
-                    scale: 1.05,
-                    transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] }
-                }).then(() => {
-                    finished = true;
-                    if (mountedRef.current) {
-                        cycleTop();
-                        animatingRef.current = false;
-                    }
-                }).catch(() => {
-                    // even on rejection, attempt to reset
-                    if (mountedRef.current) {
-                        cycleTop();
-                        animatingRef.current = false;
-                    }
-                });
-                // Fallback safety: if the promise never resolves (rare), recycle anyway
-                setTimeout(() => {
-                    if (!finished && mountedRef.current) {
-                        cycleTop();
-                        animatingRef.current = false;
-                    }
-                }, 900);
-            }
-        } else {
-            if (mountedRef.current) {
-                controls.start({ x: 0, y: 0, rotate: 0, scale: 1, transition: { type: 'spring', stiffness: 420, damping: 28 } });
-            }
-        }
-    };
-
-    const p = card;
-    return (
-        <motion.div
-            className={`swipe-card glass-strong ${isTop ? 'top' : ''}`}
-            style={{ backgroundImage: `url(${p.image}&q=60)`, zIndex: 10 + index, x, rotate }}
-            initial={{ scale: 0.94, y: 40, opacity: 0 }}
-            drag={isTop ? 'x' : false}
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.22}
-            onDragEnd={handleDragEnd}
-            whileDrag={prefersReduced ? undefined : { scale: 1.04, y: -4 }}
-            onDoubleClick={() => onSelect(p)}
-            animate={controls}
-            transition={{ layout: { duration: 0.45, ease: [0.25, 0.1, 0.25, 1] } }}
-        >
-            <div className="swipe-card-overlay">
-                <div className="swipe-meta">
-                    <span className="badge" style={{ marginBottom: '.6rem' }}>{p.type}</span>
-                    <h3>{p.title}</h3>
-                    <p className="loc">{p.location}</p>
-                    <p className="price-line">{formatPrice(p.price)}</p>
-                    <div className="mini-meta">{p.beds} BD • {p.baths} BA • {p.size.toLocaleString()} SF</div>
-                </div>
-                <div className="swipe-actions">
-                    <button className="cta small" onClick={() => onSelect(p)}>Details</button>
-                </div>
-            </div>
-        </motion.div>
-    );
-};
 
 export default Properties;

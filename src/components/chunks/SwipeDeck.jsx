@@ -58,6 +58,18 @@ const SwipeDeck = ({ items, onSelect }) => {
     return arr;
   }, [index, items, len]);
 
+  // Public fling trigger used by keyboard / drag
+  const triggerFling = useCallback((dir) => {
+    if (!len) return;
+    const top = items[index];
+    const leaveKey = `${top.id}-leave-${Date.now()}`;
+    setLeaving({ item: top, dir, key: leaveKey });
+    // Advance index mid-flight for responsiveness
+    setTimeout(() => { goNext(dir); }, FLY_DURATION * 500); // about half animation
+    // Clear leaving after animation window
+    setTimeout(() => { setLeaving(l => (l && l.key === leaveKey ? null : l)); }, FLY_DURATION * 1000 + 80);
+  }, [len, items, index, goNext]);
+
   // Keyboard support
   useEffect(() => {
     const handler = (e) => {
@@ -73,18 +85,6 @@ const SwipeDeck = ({ items, onSelect }) => {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [index, items, len, onSelect, triggerFling]);
-
-  // Public fling trigger used by keyboard
-  const triggerFling = (dir) => {
-    if (!len) return;
-    const top = items[index];
-    const leaveKey = `${top.id}-leave-${Date.now()}`;
-    setLeaving({ item: top, dir, key: leaveKey });
-    // Advance index mid-flight for responsiveness
-    setTimeout(() => { goNext(dir); }, FLY_DURATION * 500); // about half animation
-    // Clear leaving after animation window
-    setTimeout(() => { setLeaving(l => (l && l.key === leaveKey ? null : l)); }, FLY_DURATION * 1000 + 80);
-  };
 
   return (
     <div className="swipe-deck" aria-label="Property swipe deck" role="list" style={{ position: 'relative' }}>
