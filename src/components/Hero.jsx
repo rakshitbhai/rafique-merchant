@@ -21,11 +21,29 @@ const Hero = () => {
         'Alflaatoon Vision'
     ];
     const [sigIndex, setSigIndex] = useState(0);
+    const heroVisibleRef = useRef(true);
+    // Rotate signature items only while hero section is in/near viewport
     useEffect(() => {
-        const id = setInterval(() => {
-            setSigIndex(i => (i + 1) % signatureItems.length);
-        }, 2600);
-        return () => clearInterval(id);
+        const heroEl = document.getElementById('home');
+        if (!heroEl) return;
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(e => { heroVisibleRef.current = e.isIntersecting; });
+        }, { rootMargin: '0px 0px -40% 0px', threshold: 0.15 });
+        io.observe(heroEl);
+        let frame; let lastTs = 0; let acc = 0;
+        const cycleEvery = 2600;
+        const loop = (ts) => {
+            frame = requestAnimationFrame(loop);
+            if (!heroVisibleRef.current) { lastTs = ts; return; }
+            if (!lastTs) lastTs = ts;
+            const delta = ts - lastTs; lastTs = ts; acc += delta;
+            if (acc >= cycleEvery) {
+                setSigIndex(i => (i + 1) % signatureItems.length);
+                acc = 0;
+            }
+        };
+        frame = requestAnimationFrame(loop);
+        return () => { io.disconnect(); if (frame) cancelAnimationFrame(frame); };
     }, [signatureItems.length]);
 
     // Determine allowance (respect prefers-reduced-motion only). Mobile now allowed; we optimize height via CSS.
@@ -60,8 +78,9 @@ const Hero = () => {
         <section id="home" className="hero section-pad">
             <div className="hero-bg" />
             <div className="hero-overlay-noise" />
-            <motion.div className="hero-accent accent-a" variants={variants.float} animate="animate" />
-            <motion.div className="hero-accent accent-b" variants={variants.float} animate="animate" transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }} />
+            {/* Static accents now rely solely on CSS keyframe animation (no JS driven per-frame updates) */}
+            <div className="hero-accent accent-a" aria-hidden="true" />
+            <div className="hero-accent accent-b" aria-hidden="true" />
             <div className="container hero-layout">
                 <motion.div
                     className="hero-content"

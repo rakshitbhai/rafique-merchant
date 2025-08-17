@@ -6,7 +6,7 @@ import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import PerfToggle from './components/PerfToggle';
 import Footer from './components/Footer';
-import Contact from './components/Contact';
+const Contact = lazy(() => import('./components/Contact'));
 // Code-split heavier sections (declare after all static imports per eslint import/first rule)
 const Properties = lazy(() => import(/* webpackChunkName: 'properties-chunk' */ './components/Properties'));
 
@@ -75,7 +75,9 @@ function App() {
                         </motion.div>
                     </div>
                 </section>
-                <Contact />
+                <Suspense fallback={<div style={{minHeight:'30vh',display:'grid',placeItems:'center',fontSize:'.7rem',letterSpacing:'.3em',textTransform:'uppercase',color:'var(--color-neutral-500)'}}>Loading contact…</div>}>
+                    <Contact />
+                </Suspense>
             </motion.main>
             <Footer />
             <PerfToggle />

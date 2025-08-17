@@ -355,6 +355,11 @@ button.cta:active {
         grid-row: span 1 !important;
     }
 
+    /* Tighten hero bottom padding on small screens (was large causing excess space) */
+    .hero.section-pad {
+        padding-bottom: 3.5rem;
+    }
+
     .properties-grid.mosaic.responsive {
         grid-auto-rows: 360px;
     }
@@ -586,14 +591,15 @@ button.cta:active {
     gap: 1.2rem;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.8rem;
+    margin-bottom: 1.4rem;
 }
 
 @media (max-width:760px) {
     .portfolio-top-bar {
         flex-direction: column;
         align-items: stretch;
-        gap: 1rem;
+    gap: .75rem;
+    margin-bottom: 1rem;
     }
 
     .filter-bar.refined {
@@ -1535,8 +1541,12 @@ button.cta:active {
 
 @media (max-width:640px) {
     .founder-card {
-        padding: .85rem 1rem 1.1rem;
+        /* Removed fixed height to avoid elongated empty space; allow natural content height */
+        height: auto;
+        margin-top: .4rem;
         border-radius: 26px;
+        /* Slightly tighter padding on mobile */
+        padding: .9rem 1rem 1rem;
     }
 
     .founder-img-wrap {
@@ -2750,4 +2760,17 @@ form.is-submitting .cta {
 
 .perf-mode .perf-toggle-btn {
     background: rgba(0, 0, 0, 0.75);
+}
+
+/* --- Signature pill clipping fixes --- */
+/* Allow pill animation to overflow without a visible clipping line */
+.founder-card .signature-words-viewport, .signature-words-viewport {
+    overflow: visible;
+    padding-bottom: 2px; /* small breathing room to avoid baseline crop */
+}
+
+/* Stabilize rendering to avoid subpixel hairline during scale/translate */
+.signature-word-pill {
+    backface-visibility: hidden;
+    transform: translateZ(0);
 }
