@@ -1,41 +1,45 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { variants } from '../hooks/useAdvancedAnimations';
-
-const initialState = { name: '', email: '', phone: '', interest: '', message: '' };
+import { useContactForm } from '../store/hooks';
 
 const Contact = () => {
-    const [data, setData] = useState(initialState);
-    const [errors, setErrors] = useState({});
-    const [sent, setSent] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
+    const {
+        formData,
+        errors,
+        isSubmitting,
+        isSubmitted,
+        isValid,
+        canSubmit,
+        updateField,
+        setSubmitting,
+        setSubmitted,
+        resetForm,
+    } = useContactForm();
 
-    const validate = () => {
-        const e = {};
-        if (!data.name.trim()) e.name = 'Name required';
-        if (!data.email.match(/^[^@\s]+@[^@\s]+\.[^@\s]+$/)) e.email = 'Valid email required';
-        if (data.phone && !data.phone.match(/^[+()0-9\s-]{7,}$/)) e.phone = 'Invalid phone';
-        if (!data.message.trim()) e.message = 'Message required';
-        return e;
-    };
-
-    const onChange = e => {
+    const onChange = (e) => {
         const { name, value } = e.target;
-        setData(d => ({ ...d, [name]: value }));
-        if (errors[name]) setErrors(er => { const clone = { ...er }; delete clone[name]; return clone; });
+        updateField(name, value);
     };
 
-    const onSubmit = e => {
+    const onSubmit = (e) => {
         e.preventDefault();
-        const eMap = validate();
-        setErrors(eMap);
-        if (Object.keys(eMap).length) return;
+
+        if (!isValid || !canSubmit) return;
+
         setSubmitting(true);
+
+        // Simulate form submission
         setTimeout(() => {
+            console.log('Form submitted:', formData);
+            setSubmitted(true);
             setSubmitting(false);
-            setSent(true);
-            setTimeout(() => { setSent(false); setData(initialState); }, 4000);
-        }, 900);
+
+            // Reset form after success
+            setTimeout(() => {
+                resetForm();
+            }, 3000);
+        }, 2000);
     };
 
     return (
@@ -50,26 +54,26 @@ const Contact = () => {
                 <div className="contact-grid">
                     <motion.div className="contact-panel glass-strong" variants={variants.fadeInBlur} initial="initial" whileInView="animate" viewport={{ once: true }}>
                         <h3 className="contact-title">Request Advisory</h3>
-                        <form onSubmit={onSubmit} noValidate className={submitting ? 'is-submitting' : ''}>
-                            <div className={`field ${data.name ? 'filled' : ''} ${errors.name ? 'error' : ''}`}>
-                                <input name="name" id="name" value={data.name} onChange={onChange} autoComplete="name" />
+                        <form onSubmit={onSubmit} noValidate className={isSubmitting ? 'is-submitting' : ''}>
+                            <div className={`field ${formData.name ? 'filled' : ''} ${errors.name ? 'error' : ''}`}>
+                                <input name="name" id="name" value={formData.name} onChange={onChange} autoComplete="name" />
                                 <label htmlFor="name">Full Name</label>
                                 {errors.name && <span className="err">{errors.name}</span>}
                             </div>
                             <div className="field-row">
-                                <div className={`field ${data.email ? 'filled' : ''} ${errors.email ? 'error' : ''}`}>
-                                    <input name="email" id="email" type="email" value={data.email} onChange={onChange} autoComplete="email" />
+                                <div className={`field ${formData.email ? 'filled' : ''} ${errors.email ? 'error' : ''}`}>
+                                    <input name="email" id="email" type="email" value={formData.email} onChange={onChange} autoComplete="email" />
                                     <label htmlFor="email">Email</label>
                                     {errors.email && <span className="err">{errors.email}</span>}
                                 </div>
-                                <div className={`field ${data.phone ? 'filled' : ''} ${errors.phone ? 'error' : ''}`}>
-                                    <input name="phone" id="phone" value={data.phone} onChange={onChange} autoComplete="tel" />
+                                <div className={`field ${formData.phone ? 'filled' : ''} ${errors.phone ? 'error' : ''}`}>
+                                    <input name="phone" id="phone" value={formData.phone} onChange={onChange} autoComplete="tel" />
                                     <label htmlFor="phone">Phone (Optional)</label>
                                     {errors.phone && <span className="err">{errors.phone}</span>}
                                 </div>
                             </div>
-                            <div className={`field select ${data.interest ? 'filled' : ''}`}>
-                                <select name="interest" id="interest" value={data.interest} onChange={onChange}>
+                            <div className={`field select ${formData.interest ? 'filled' : ''}`}>
+                                <select name="interest" id="interest" value={formData.interest} onChange={onChange}>
                                     <option value="">Interest Area</option>
                                     <option>Acquisition</option>
                                     <option>Disposition</option>
@@ -78,16 +82,16 @@ const Contact = () => {
                                 </select>
                                 <label htmlFor="interest">Interest</label>
                             </div>
-                            <div className={`field ${data.message ? 'filled' : ''} ${errors.message ? 'error' : ''}`}>
-                                <textarea name="message" id="message" rows={4} value={data.message} onChange={onChange} />
+                            <div className={`field ${formData.message ? 'filled' : ''} ${errors.message ? 'error' : ''}`}>
+                                <textarea name="message" id="message" rows={4} value={formData.message} onChange={onChange} />
                                 <label htmlFor="message">Message</label>
                                 {errors.message && <span className="err">{errors.message}</span>}
                             </div>
                             <div className="form-actions">
-                                <button type="submit" disabled={submitting} className="cta" style={{ minWidth: '190px' }}>
-                                    {submitting ? 'Sending...' : sent ? 'Sent ✓' : 'Send Enquiry'}
+                                <button type="submit" disabled={!canSubmit} className="cta" style={{ minWidth: '190px' }}>
+                                    {isSubmitting ? 'Sending...' : isSubmitted ? 'Sent ✓' : 'Send Enquiry'}
                                 </button>
-                                {sent && <span className="form-status" aria-live="polite">We received your request.</span>}
+                                {isSubmitted && <span className="form-status" aria-live="polite">We received your request.</span>}
                             </div>
                         </form>
                         <p className="privacy-note">Your information is encrypted in transit and never shared without consent.</p>

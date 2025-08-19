@@ -1,8 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useNavbar, useResponsive } from '../store/hooks';
 
 const Navbar = () => {
-    const [scrolled, setScrolled] = useState(false);
-    const [active, setActive] = useState('home');
+    const { navbar, setScrolled, setActiveSection, toggleMobileMenu, closeMobileMenu } = useNavbar();
+    const { updateViewport } = useResponsive();
+
+    const btnRef = useRef(null);
+    const drawerRef = useRef(null);
 
     useEffect(() => {
         let ticking = false;
@@ -16,29 +20,32 @@ const Navbar = () => {
         };
         window.addEventListener('scroll', onScroll, { passive: true });
         return () => window.removeEventListener('scroll', onScroll);
-    }, []);
-
-    const [open, setOpen] = useState(false);
-    const btnRef = useRef(null);
-    const drawerRef = useRef(null);
+    }, [setScrolled]);
 
     // Lock body scroll when drawer open
-    useEffect(() => { document.body.style.overflow = open ? 'hidden' : ''; }, [open]);
+    useEffect(() => {
+        document.body.style.overflow = navbar.mobileMenuOpen ? 'hidden' : '';
+    }, [navbar.mobileMenuOpen]);
 
     // Close drawer when resizing above breakpoint
     useEffect(() => {
-        const onResize = () => { if (window.innerWidth > 820 && open) setOpen(false); };
+        const onResize = () => {
+            updateViewport();
+            if (window.innerWidth > 820 && navbar.mobileMenuOpen) {
+                closeMobileMenu();
+            }
+        };
         window.addEventListener('resize', onResize);
         return () => window.removeEventListener('resize', onResize);
-    }, [open]);
+    }, [navbar.mobileMenuOpen, closeMobileMenu, updateViewport]);
 
     // Close on ESC & outside click
     useEffect(() => {
-        if (!open) return;
-        const onKey = e => { if (e.key === 'Escape') setOpen(false); };
+        if (!navbar.mobileMenuOpen) return;
+        const onKey = e => { if (e.key === 'Escape') closeMobileMenu(); };
         const onPointer = e => {
             if (drawerRef.current && btnRef.current && !drawerRef.current.contains(e.target) && !btnRef.current.contains(e.target)) {
-                setOpen(false);
+                closeMobileMenu();
             }
         };
         window.addEventListener('keydown', onKey);
@@ -49,7 +56,7 @@ const Navbar = () => {
             window.removeEventListener('mousedown', onPointer);
             window.removeEventListener('touchstart', onPointer);
         };
-    }, [open]);
+    }, [navbar.mobileMenuOpen, closeMobileMenu]);
     // Scrollspy (IntersectionObserver)
     useEffect(() => {
         const sectionIds = ['home', 'portfolio', 'about', 'experience', 'contact'];
@@ -62,35 +69,35 @@ const Navbar = () => {
             const visible = entries.filter(e => e.isIntersecting)
                 .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
             if (visible.length) {
-                setActive(visible[0].target.id);
+                setActiveSection(visible[0].target.id);
             }
         }, { threshold: [0.25, 0.4, 0.6] });
         sections.forEach(sec => io.observe(sec));
         return () => io.disconnect();
-    }, []);
+    }, [setActiveSection]);
 
     return (
-        <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
+        <nav className={`navbar ${navbar.scrolled ? 'scrolled' : ''}`}>
             <div className="container nav-inner">
-                <a href="#home" className="brand" onClick={() => setOpen(false)}>
+                <a href="#home" className="brand" onClick={closeMobileMenu}>
                     Rafique <span>Merchant</span>
                 </a>
                 <ul className="nav-links nav-desktop">
-                    <li><a className={active === 'home' ? 'active' : ''} href="#home">Home</a></li>
-                    <li><a className={active === 'portfolio' ? 'active' : ''} href="#portfolio">Portfolio</a></li>
-                    <li><a className={active === 'about' ? 'active' : ''} href="#about">About</a></li>
-                    <li><a className={active === 'contact' ? 'active' : ''} href="#contact">Contact</a></li>
+                    <li><a className={navbar.activeSection === 'home' ? 'active' : ''} href="#home">Home</a></li>
+                    <li><a className={navbar.activeSection === 'portfolio' ? 'active' : ''} href="#portfolio">Portfolio</a></li>
+                    <li><a className={navbar.activeSection === 'about' ? 'active' : ''} href="#about">About</a></li>
+                    <li><a className={navbar.activeSection === 'contact' ? 'active' : ''} href="#contact">Contact</a></li>
                 </ul>
                 <div className="nav-actions nav-desktop">
                     <button className="cta" style={{ fontSize: '.75rem', padding: '.7rem 1.25rem' }}>Advisory</button>
                 </div>
                 <button
                     ref={btnRef}
-                    aria-label={open ? 'Close menu' : 'Open menu'}
-                    aria-expanded={open}
+                    aria-label={navbar.mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                    aria-expanded={navbar.mobileMenuOpen}
                     aria-controls="mobile-drawer"
-                    onClick={() => setOpen(o => !o)}
-                    className={`menu-btn luxe ${open ? 'active' : ''}`}
+                    onClick={toggleMobileMenu}
+                    className={`menu-btn luxe ${navbar.mobileMenuOpen ? 'active' : ''}`}
                 >
                     <span className="menu-shape" aria-hidden="true">
                         <span className="dot d1" />
@@ -102,15 +109,15 @@ const Navbar = () => {
                     </span>
                 </button>
             </div>
-            <div className={`mobile-overlay ${open ? 'show' : ''}`} aria-hidden={!open} />
-            <div ref={drawerRef} id="mobile-drawer" className={`mobile-drawer glass-strong ${open ? 'show' : ''}`} aria-hidden={!open}>
+            <div className={`mobile-overlay ${navbar.mobileMenuOpen ? 'show' : ''}`} aria-hidden={!navbar.mobileMenuOpen} />
+            <div ref={drawerRef} id="mobile-drawer" className={`mobile-drawer glass-strong ${navbar.mobileMenuOpen ? 'show' : ''}`} aria-hidden={!navbar.mobileMenuOpen}>
                 <ul className="mobile-nav-list">
-                    <li style={{ '--i': 1 }}><a className={active === 'home' ? 'active' : ''} onClick={() => setOpen(false)} href="#home">Home</a></li>
-                    <li style={{ '--i': 2 }}><a className={active === 'portfolio' ? 'active' : ''} onClick={() => setOpen(false)} href="#portfolio">Portfolio</a></li>
-                    <li style={{ '--i': 3 }}><a className={active === 'about' ? 'active' : ''} onClick={() => setOpen(false)} href="#about">About</a></li>
-                    <li style={{ '--i': 4 }}><a className={active === 'contact' ? 'active' : ''} onClick={() => setOpen(false)} href="#contact">Contact</a></li>
+                    <li style={{ '--i': 1 }}><a className={navbar.activeSection === 'home' ? 'active' : ''} onClick={closeMobileMenu} href="#home">Home</a></li>
+                    <li style={{ '--i': 2 }}><a className={navbar.activeSection === 'portfolio' ? 'active' : ''} onClick={closeMobileMenu} href="#portfolio">Portfolio</a></li>
+                    <li style={{ '--i': 3 }}><a className={navbar.activeSection === 'about' ? 'active' : ''} onClick={closeMobileMenu} href="#about">About</a></li>
+                    <li style={{ '--i': 4 }}><a className={navbar.activeSection === 'contact' ? 'active' : ''} onClick={closeMobileMenu} href="#contact">Contact</a></li>
                 </ul>
-                <button className="cta mobile-cta" onClick={() => setOpen(false)} style={{ '--i': 5 }}>Request Advisory</button>
+                <button className="cta mobile-cta" onClick={closeMobileMenu} style={{ '--i': 5 }}>Request Advisory</button>
             </div>
         </nav>
     );

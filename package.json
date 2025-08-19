@@ -4,6 +4,7 @@
   "private": true,
   "homepage": "https://rakshitbhai.github.io/rafique-merchant",
   "dependencies": {
+    "@reduxjs/toolkit": "^2.2.8",
     "@splinetool/react-spline": "^4.1.0",
     "@splinetool/runtime": "^1.10.48",
     "@testing-library/dom": "^10.4.1",
@@ -14,7 +15,10 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-intersection-observer": "^9.16.0",
+    "react-redux": "^9.1.2",
     "react-scripts": "5.0.1",
+    "redux-persist": "^6.0.0",
+    "reselect": "^5.1.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

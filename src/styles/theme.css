@@ -2746,3 +2746,18 @@ form.is-submitting .cta {
     backface-visibility: hidden;
     transform: translateZ(0);
 }
+
+/* Enhanced swipe card overlay with better text visibility */
+.swipe-card-overlay-enhanced::before {
+    display: none;
+    /* Disable default gradient */
+}
+
+.swipe-card-overlay-enhanced {
+    padding: 0 !important;
+    /* Override default padding */
+    background: none !important;
+    /* Override default background */
+    gap: 0 !important;
+    /* Override default gap */
+}
