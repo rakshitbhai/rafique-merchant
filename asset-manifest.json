@@ -1,15 +1,13 @@
 {
   "files": {
     "main.css": "/rafique-merchant/static/css/main.efb6c1bd.css",
-    "main.js": "/rafique-merchant/static/js/main.2c3699a1.js",
-    "full-theme.css": "/rafique-merchant/static/css/full-theme.9c2d3fdd.chunk.css",
+    "main.js": "/rafique-merchant/static/js/main.0631faca.js",
+    "full-theme.css": "/rafique-merchant/static/css/full-theme.cbf8458f.chunk.css",
     "full-theme.js": "/rafique-merchant/static/js/full-theme.284acde4.chunk.js",
-    "static/js/667.cefd4215.chunk.js": "/rafique-merchant/static/js/667.cefd4215.chunk.js",
-    "properties-chunk.js": "/rafique-merchant/static/js/properties-chunk.72635132.chunk.js",
-    "spline-hero.js": "/rafique-merchant/static/js/spline-hero.07d9d91c.chunk.js",
+    "static/js/667.2ad74172.chunk.js": "/rafique-merchant/static/js/667.2ad74172.chunk.js",
+    "properties-chunk.js": "/rafique-merchant/static/js/properties-chunk.20033867.chunk.js",
+    "spline-hero.js": "/rafique-merchant/static/js/spline-hero.ba8f1b7f.chunk.js",
     "static/js/453.f1112009.chunk.js": "/rafique-merchant/static/js/453.f1112009.chunk.js",
-    "property-modal.js": "/rafique-merchant/static/js/property-modal.9998f0be.chunk.js",
-    "swipe-deck.js": "/rafique-merchant/static/js/swipe-deck.59018ae5.chunk.js",
     "static/js/208.ac321548.chunk.js": "/rafique-merchant/static/js/208.ac321548.chunk.js",
     "static/js/293.3606b498.chunk.js": "/rafique-merchant/static/js/293.3606b498.chunk.js",
     "static/js/917.f9b893d8.chunk.js": "/rafique-merchant/static/js/917.f9b893d8.chunk.js",
@@ -21,15 +19,13 @@
     "static/media/rafique-merchant.png": "/rafique-merchant/static/media/rafique-merchant.fabedcb243832b1e60f0.png",
     "index.html": "/rafique-merchant/index.html",
     "main.efb6c1bd.css.map": "/rafique-merchant/static/css/main.efb6c1bd.css.map",
-    "main.2c3699a1.js.map": "/rafique-merchant/static/js/main.2c3699a1.js.map",
-    "full-theme.9c2d3fdd.chunk.css.map": "/rafique-merchant/static/css/full-theme.9c2d3fdd.chunk.css.map",
+    "main.0631faca.js.map": "/rafique-merchant/static/js/main.0631faca.js.map",
+    "full-theme.cbf8458f.chunk.css.map": "/rafique-merchant/static/css/full-theme.cbf8458f.chunk.css.map",
     "full-theme.284acde4.chunk.js.map": "/rafique-merchant/static/js/full-theme.284acde4.chunk.js.map",
-    "667.cefd4215.chunk.js.map": "/rafique-merchant/static/js/667.cefd4215.chunk.js.map",
-    "properties-chunk.72635132.chunk.js.map": "/rafique-merchant/static/js/properties-chunk.72635132.chunk.js.map",
-    "spline-hero.07d9d91c.chunk.js.map": "/rafique-merchant/static/js/spline-hero.07d9d91c.chunk.js.map",
+    "667.2ad74172.chunk.js.map": "/rafique-merchant/static/js/667.2ad74172.chunk.js.map",
+    "properties-chunk.20033867.chunk.js.map": "/rafique-merchant/static/js/properties-chunk.20033867.chunk.js.map",
+    "spline-hero.ba8f1b7f.chunk.js.map": "/rafique-merchant/static/js/spline-hero.ba8f1b7f.chunk.js.map",
     "453.f1112009.chunk.js.map": "/rafique-merchant/static/js/453.f1112009.chunk.js.map",
-    "property-modal.9998f0be.chunk.js.map": "/rafique-merchant/static/js/property-modal.9998f0be.chunk.js.map",
-    "swipe-deck.59018ae5.chunk.js.map": "/rafique-merchant/static/js/swipe-deck.59018ae5.chunk.js.map",
     "208.ac321548.chunk.js.map": "/rafique-merchant/static/js/208.ac321548.chunk.js.map",
     "293.3606b498.chunk.js.map": "/rafique-merchant/static/js/293.3606b498.chunk.js.map",
     "917.f9b893d8.chunk.js.map": "/rafique-merchant/static/js/917.f9b893d8.chunk.js.map",
@@ -41,6 +37,6 @@
   },
   "entrypoints": [
     "static/css/main.efb6c1bd.css",
-    "static/js/main.2c3699a1.js"
+    "static/js/main.0631faca.js"
   ]
 }
