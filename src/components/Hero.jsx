@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, Suspense, lazy } from 'react';
 import { useDispatch } from 'react-redux';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import portraitImg from '../assets/rafique-merchant.png';
 import { smoothScrollTo } from '../hooks/useAdvancedAnimations';
 import OptimizedMotion from './OptimizedMotion';
@@ -99,12 +99,9 @@ const Hero = () => {
 
     return (
         <section id="home" className="hero section-pad">
-            <div className="hero-bg" />
-            <div className="hero-overlay-noise" />
-            {/* Static accents now rely solely on CSS keyframe animation (no JS driven per-frame updates) */}
-            <div className="hero-accent accent-a" aria-hidden="true" />
-            <div className="hero-accent accent-b" aria-hidden="true" />
-            <div className="container hero-layout">
+            
+
+            <div className="container hero-layout"> 
                 <OptimizedMotion
                     className="hero-content"
                     initial={{ opacity: 0 }}
@@ -199,8 +196,10 @@ const Hero = () => {
                         ))}
                     </OptimizedMotion>
                 </OptimizedMotion>
+              
+
                 <div className="hero-right-stack">
-                    <OptimizedMotion
+                    {/* <OptimizedMotion
                         ref={splineRef}
                         className={`hero-spline glass-strong ${splineLoaded ? 'is-loaded' : ''}`}
                         initial={{ opacity: 0, y: 60, scale: 0.9, blur: 12 }}
@@ -255,7 +254,9 @@ const Hero = () => {
                                 )}
                             </div>
                         )}
-                    </OptimizedMotion>
+                    </OptimizedMotion> */}
+
+                    
                     <OptimizedMotion
                         className="founder-card glass"
                         initial={{ opacity: 0, y: 50, scale: 0.95, blur: 8 }}
