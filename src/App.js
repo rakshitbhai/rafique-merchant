@@ -1,7 +1,7 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { store, persistor } from './store';
 import { variants } from './hooks/useAdvancedAnimations';
 import Navbar from './components/Navbar';
@@ -16,32 +16,33 @@ const Contact = lazy(() => import('./components/Contact'));
 const Properties = lazy(() => import(/* webpackChunkName: 'properties-chunk' */ './components/Properties'));
 
 // Simple intersection observer for reveal animations
-const useReveal = () => {
-    useEffect(() => {
-        document.documentElement.classList.add('reveal-ready');
-        const els = [...document.querySelectorAll('.reveal-up, .fade-in')];
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(e => {
-                if (e.isIntersecting) {
-                    e.target.classList.add('visible');
-                    observer.unobserve(e.target);
-                }
-            });
-        }, { threshold: 0.2 });
-        els.forEach(el => observer.observe(el));
-        return () => observer.disconnect();
-    }, []);
-};
+// const useReveal = () => {
+//     useEffect(() => {
+//         document.documentElement.classList.add('reveal-ready');
+//         const els = [...document.querySelectorAll('.reveal-up, .fade-in')];
+//         const observer = new IntersectionObserver((entries) => {
+//             entries.forEach(e => {
+//                 if (e.isIntersecting) {
+//                     e.target.classList.add('visible');
+//                     observer.unobserve(e.target);
+//                 }
+//             });
+//         }, { threshold: 0.2 });
+//         els.forEach(el => observer.observe(el));
+//         return () => observer.disconnect();
+//     }, []);
+// };
 
 // Main App component wrapped with Redux
 const AppContent = () => {
-    useReveal();
+    // useReveal();
     return (
         <>
-            <ReduxPerformanceInitializer />
-            <PerformanceMonitor enabled={process.env.NODE_ENV === 'development'} />
+            {/* <ReduxPerformanceInitializer />
+            <PerformanceMonitor enabled={process.env.NODE_ENV === 'development'} /> */}
             <Navbar />
-            <motion.main
+        
+            <main
                 initial="initial"
                 animate="animate"
                 variants={variants.pageLoad}
@@ -51,10 +52,8 @@ const AppContent = () => {
                 }}
             >
                 <Hero />
-                <Suspense fallback={<div style={{ minHeight: '40vh', display: 'grid', placeItems: 'center', fontSize: '.75rem', letterSpacing: '.25em', textTransform: 'uppercase', color: 'var(--color-neutral-500)' }}>Loading portfolio…</div>}>
                     <Properties />
-                </Suspense>
-                {/* About Section with professional motion */}
+
                 <section id="about" className="section-pad">
                     <div className="container">
                         <OptimizedMotion
@@ -128,8 +127,8 @@ const AppContent = () => {
                 <Suspense fallback={<div style={{ minHeight: '30vh', display: 'grid', placeItems: 'center', fontSize: '.7rem', letterSpacing: '.3em', textTransform: 'uppercase', color: 'var(--color-neutral-500)' }}>Loading contact…</div>}>
                     <Contact />
                 </Suspense>
-            </motion.main>
-            <Footer />
+            </main>
+            <Footer /> 
         </>
     );
 };
@@ -164,6 +163,8 @@ function App() {
                 persistor={persistor}
             >
                 <AppContent />
+                
+        
             </PersistGate>
         </Provider>
     );

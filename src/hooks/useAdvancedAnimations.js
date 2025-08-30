@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAnimation, useInView } from 'framer-motion';
+import { useAnimation, useInView } from 'motion/react';
 
 // Lightweight runtime performance heuristic (runs once on module load)
 // Falls back gracefully if unavailable environment APIs
