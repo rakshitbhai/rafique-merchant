@@ -67,4 +67,18 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 
 ### `npm run build` fails to minify
 
+`# 1. Optional: sync & install
+git pull origin main
+npm install
+
+# 2. Stage & commit changes
+git add .
+git commit -m "Redeploy: update site content"
+
+# 3. Push main (good to keep remote in sync)
+git push origin main
+
+# 4. Deploy to gh-pages (build runs via predeploy)
+npm run deploy`
+
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
