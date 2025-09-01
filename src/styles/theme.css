@@ -888,12 +888,12 @@ button.cta:active {
 }
 
 /* Card skeleton while loading hi-res */
-.card-skeleton {
+/* .card-skeleton {
     position: absolute;
     inset: 0;
     background: linear-gradient(120deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.06));
     overflow: hidden;
-}
+} */
 
 .skel-shimmer {
     position: absolute;

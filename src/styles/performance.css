@@ -38,7 +38,7 @@ img {
 }
 
 /* Skeleton loading optimizations */
-.card-skeleton {
+/* .card-skeleton {
     contain: strict;
     position: absolute;
     inset: 0;
@@ -47,7 +47,7 @@ img {
             var(--color-neutral-700) 50%,
             var(--color-neutral-800) 75%);
     background-size: 200% 100%;
-}
+} */
 
 .skel-shimmer {
     position: absolute;

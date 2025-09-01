@@ -199,7 +199,7 @@ const Hero = () => {
               
 
                 <div className="hero-right-stack">
-                    {/* <OptimizedMotion
+                    <OptimizedMotion
                         ref={splineRef}
                         className={`hero-spline glass-strong ${splineLoaded ? 'is-loaded' : ''}`}
                         initial={{ opacity: 0, y: 60, scale: 0.9, blur: 12 }}
@@ -254,7 +254,7 @@ const Hero = () => {
                                 )}
                             </div>
                         )}
-                    </OptimizedMotion> */}
+                    </OptimizedMotion>
 
                     
                     <OptimizedMotion
